@@ -12,7 +12,7 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - Module name: `registre-admin`
 - Entry point: `backend/cmd/api/main.go`
 - Layers: `database` → `repository` (DAO interfaces) → `server` (Gin handlers) → `types`
-- Handler files: `handlers_<domain>.go` (e.g., `handlers_patients.go`)
+- Handler files: `handlers_<domain>.go` (e.g., `handlers_participants.go`)
 - GORM models go in `internal/types/`
 - Migrations: `golang-migrate` with versioned SQL files in `backend/migrations/`
 - Swagger annotations on handler functions, generated via `swag init`
@@ -28,6 +28,8 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 | GET | `/participants/:id` | Get single participant with contacts and GUID |
 | POST | `/participants` | Create participant |
 | PUT | `/participants/:id` | Update participant |
+| DELETE | `/participants/:id` | Delete participant (cascade; audited as `participant_deleted`) |
+| POST | `/participants/resolve-ids` | Resolve a list of ids/RAMQ/external ids to participant ids (bulk filter) |
 
 ### Contacts
 | Method | Route | Description |
@@ -53,11 +55,40 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 |--------|-------|-------------|
 | GET | `/participants/:id/external-ids` | List external system IDs for a participant |
 
+### Communications
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/participants/:id/communications` | List communications for a participant |
+| POST | `/participants/:id/communications` | Record a communication (phone/email attempt) |
+| PUT | `/communications/:communicationId` | Update a communication |
+| DELETE | `/communications/:communicationId` | Delete a communication |
+
+### Cart (per user, keyed by `auth.UserSub`)
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/cart/items` | List cart items with participant data |
+| GET | `/cart/count` | Cart size |
+| POST | `/cart/items` | Add participant ids |
+| DELETE | `/cart/items` | Remove participant ids |
+| DELETE | `/cart` | Clear cart |
+| POST | `/cart/export-data` | Data for the Excel export (audited as `data_exported`) |
+| POST | `/cart/communications` | Record a communication for every cart participant |
+
 ### Documents
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | `/documents` | Upload document |
 | GET | `/documents/:id/file` | Download document file |
+
+### Administration (reference data)
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/code-tables` | All editable code tables |
+| POST | `/code-tables/:table/entries` | Add a code entry |
+| PUT | `/code-tables/:table/entries/:code` | Update a code entry |
+| DELETE | `/code-tables/:table/entries/:code` | Delete a code entry (409 if referenced) |
+| GET/POST | `/external-systems` | List / create external systems |
+| PUT/DELETE | `/external-systems/:id` | Update / delete an external system (409 if referenced) |
 
 ### Other
 | Method | Route | Description |
@@ -65,6 +96,7 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 | GET | `/health` | Health check |
 | GET | `/enums` | All reference data |
 | GET | `/search` | Search suggestions (participants + contacts) |
+| GET | `/reports/summary` | Aggregates for the reports page |
 | GET | `/activity-logs` | Activity log (paginated) |
 | GET | `/participants/:id/activity-logs` | Activity log for a participant |
 | GET | `/admin-users` | Keycloak accounts holding `registre_admin` (read-only, via admin API) |
@@ -105,7 +137,10 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - `/participants` — Participant list with table (consent status columns, column visibility, fullscreen, consent status filter)
 - `/participants/:id` — Participant detail (identity, coordinates, contacts, consents, activity, external IDs in header badges)
 - `/activity` — Activity log
-- `/admin` — Administration with accordion sections (Users: read-only list of Keycloak accounts with the admin role, Consent forms: template management with table)
+- `/cart` — Bulk selection: participants added from the list, Excel export (`cart-excel-report.ts`), bulk communication
+- `/communications` — Communications across participants
+- `/reports` — Dashboard charts (recharts) from `/reports/summary`
+- `/admin` — Administration with accordion sections (Users: read-only list of Keycloak accounts with the admin role, Consent forms: template management, code tables, external systems, participant deletion)
 
 ## Styling & theming (STRICT — replicate unic-portal / radiant-portal architecture exactly)
 - **No hardcoded colors in components.** All colors must come from semantic CSS tokens via Tailwind classes (`bg-navbar`, `text-hero-foreground`, `bg-cta`, etc.). Never use brand palette classes directly (e.g., `bg-rareqc-600`, `text-slate-500`) in component code.
