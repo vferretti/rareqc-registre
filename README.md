@@ -8,7 +8,7 @@ Le backend (API + base de données) est **partagé** avec le futur portail parti
 
 | Couche       | Technologies                                                       |
 |--------------|--------------------------------------------------------------------|
-| **Backend**  | Go 1.25, Gin, GORM, PostgreSQL 16, Swagger (swaggo)               |
+| **Backend**  | Go 1.26, Gin, GORM, PostgreSQL 16, Swagger (swaggo)               |
 | **Auth**     | Keycloak (OIDC, patron BFF — cookies httpOnly, aucun jeton côté navigateur) |
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, i18next, recharts, ExcelJS |
 | **Infra**    | Docker Compose (Go API, Nginx) + plateforme partagée `rareqc-infra` (PostgreSQL, Keycloak) |
@@ -18,7 +18,7 @@ Le backend (API + base de données) est **partagé** avec le futur portail parti
 
 - **Plateforme partagée `rareqc-infra` démarrée** (PostgreSQL + Keycloak — crée le réseau Docker `rareqc-net`) : `docker compose up -d` dans le repo `rareqc-infra`
 - [Docker](https://docs.docker.com/get-docker/) et Docker Compose
-- [Go 1.25+](https://go.dev/dl/) (développement backend local)
+- [Go 1.26+](https://go.dev/dl/) (développement backend local)
 - [Node.js 22+](https://nodejs.org/) via nvm (développement frontend local)
 
 ---

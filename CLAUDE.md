@@ -4,7 +4,7 @@
 Web application for administrators of a Quebec rare disease patient registry. Manages patient records, diagnoses, and registry metadata.
 
 ## Architecture
-- **Backend**: Go 1.25 + Gin + GORM + PostgreSQL + Swagger (swaggo)
+- **Backend**: Go 1.26 + Gin + GORM + PostgreSQL + Swagger (swaggo)
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + i18next
 - **Infrastructure**: Docker Compose (PostgreSQL 16, Go API, Nginx frontend)
 
