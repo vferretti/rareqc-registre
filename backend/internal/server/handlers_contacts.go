@@ -108,7 +108,7 @@ func AddContactHandler(participantRepo repository.ParticipantDAO, contactRepo re
 			}
 
 			details := fmt.Sprintf("%s %s (%s)", req.FirstName, req.LastName, req.RelationshipCode)
-			return activityRepo.Record(tx, "contact_created", &participant.ID, author, &details)
+			return activityRepo.Record(tx, types.ActionContactCreated, &participant.ID, author, &details)
 		})
 
 		if err != nil {
@@ -207,7 +207,7 @@ func UpdateContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 			}
 
 			details := fmt.Sprintf("%s %s (%s)", req.FirstName, req.LastName, req.RelationshipCode)
-			return activityRepo.Record(tx, "contact_edited", &contact.ParticipantID, author, &details)
+			return activityRepo.Record(tx, types.ActionContactEdited, &contact.ParticipantID, author, &details)
 		})
 
 		if err != nil {
@@ -292,7 +292,7 @@ func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 				}
 			}
 			details := fmt.Sprintf("%s %s (%s)", contact.FirstName, contact.LastName, contact.RelationshipCode)
-			return activityRepo.Record(tx, "contact_deleted", &contact.ParticipantID, author, &details)
+			return activityRepo.Record(tx, types.ActionContactDeleted, &contact.ParticipantID, author, &details)
 		})
 
 		if err != nil {

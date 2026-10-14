@@ -207,7 +207,7 @@ func CreateParticipantConsentHandler(consentRepo repository.ConsentDAO, contactR
 			if err := tx.Create(&consent).Error; err != nil {
 				return err
 			}
-			return activityRepo.Record(tx, "consent_added", &participantID, author, &details)
+			return activityRepo.Record(tx, types.ActionConsentAdded, &participantID, author, &details)
 		})
 		if err != nil {
 			handleWriteError(c, err, "Failed to create consent")
@@ -296,7 +296,7 @@ func UpdateConsentHandler(consentRepo repository.ConsentDAO, contactRepo reposit
 			if oldStatus != req.StatusCode {
 				author := getAuthor(c)
 				details := fmt.Sprintf("%s → %s", oldStatus, req.StatusCode)
-				if err := activityRepo.Record(tx, "consent_edited", &consent.ParticipantID, author, &details); err != nil {
+				if err := activityRepo.Record(tx, types.ActionConsentEdited, &consent.ParticipantID, author, &details); err != nil {
 					return err
 				}
 
@@ -330,7 +330,7 @@ func UpdateConsentHandler(consentRepo repository.ConsentDAO, contactRepo reposit
 						// Record activity for each cascaded consent
 						for _, cs := range consents {
 							d := fmt.Sprintf("%s — %s → %s (registre %s)", cs.Clause.ClauseTypeCode, oldStatus, req.StatusCode, req.StatusCode)
-							if err := activityRepo.Record(tx, "consent_edited", &consent.ParticipantID, author, &d); err != nil {
+							if err := activityRepo.Record(tx, types.ActionConsentEdited, &consent.ParticipantID, author, &d); err != nil {
 								return err
 							}
 						}

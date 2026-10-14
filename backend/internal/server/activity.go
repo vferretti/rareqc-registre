@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"maps"
 	"net/url"
 	"strconv"
 	"strings"
@@ -26,13 +27,9 @@ func getAuthor(c *gin.Context) string {
 // exportDetails describes an audited export: the row count and the query
 // that selected the rows, without pagination noise.
 func exportDetails(what string, rows int, query url.Values) string {
-	filters := url.Values{}
-	for key, values := range query {
-		switch key {
-		case "export", "page_index", "page_size":
-			continue
-		}
-		filters[key] = values
+	filters := maps.Clone(query)
+	for _, key := range []string{"export", "page_index", "page_size"} {
+		delete(filters, key)
 	}
 	if len(filters) == 0 {
 		return fmt.Sprintf("%s export: %d rows", what, rows)

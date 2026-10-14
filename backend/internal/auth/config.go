@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"sort"
 	"strings"
 )
 
@@ -122,9 +121,9 @@ func (c Config) productionProblems() []string {
 	if len(c.SessionSecret) < minSessionSecretLen {
 		problems = append(problems, fmt.Sprintf("SESSION_SECRET must be at least %d characters", minSessionSecretLen))
 	}
-	for name, host := range map[string]string{"KEYCLOAK_HOST": c.KeycloakHost, "PORTAL_HOST": c.PortalHost} {
-		if !strings.HasPrefix(host, "https://") {
-			problems = append(problems, name+" must be an https:// URL")
+	for _, host := range []struct{ name, value string }{{"KEYCLOAK_HOST", c.KeycloakHost}, {"PORTAL_HOST", c.PortalHost}} {
+		if !strings.HasPrefix(host.value, "https://") {
+			problems = append(problems, host.name+" must be an https:// URL")
 		}
 	}
 	for _, host := range c.ParticipantPortalHosts {
@@ -133,7 +132,6 @@ func (c Config) productionProblems() []string {
 			break
 		}
 	}
-	sort.Strings(problems)
 	return problems
 }
 

@@ -22,6 +22,7 @@ func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engin
 	r := gin.New()
 	// Only proxies listed in TRUSTED_PROXIES may set X-Forwarded-For /
 	// X-Forwarded-Proto; with none, c.ClientIP() is the TCP peer.
+	// Entries are validated by config.Load; an error here is a programming bug.
 	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
 		panic(fmt.Sprintf("invalid TRUSTED_PROXIES: %v", err))
 	}

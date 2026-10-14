@@ -91,25 +91,39 @@ func snapshotSelfContact(contacts []types.Contact) selfContactSnapshot {
 	return selfContactSnapshot{}
 }
 
-// participantFieldsChanged compares the participant's current fields against the incoming request.
+// ptrEqual compares two optional values: both nil, or both set and equal.
+func ptrEqual[T comparable](a, b *T) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+// timePtrEqual is ptrEqual for times, which compare with Equal.
+func timePtrEqual(a, b *time.Time) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Equal(*b)
+}
+
+// guidFieldsChanged reports whether a field feeding the GUIDs (names, date
+// of birth, RAMQ, city of birth) differs between the stored participant and
+// the incoming request.
+func guidFieldsChanged(p types.Participant, req types.UpdateParticipantRequest, dob time.Time, ramq *string) bool {
+	return p.FirstName != req.FirstName || p.LastName != req.LastName ||
+		!p.DateOfBirth.Equal(dob) ||
+		!ptrEqual(p.RAMQ, ramq) ||
+		!ptrEqual(p.CityOfBirth, toStringPtr(req.CityOfBirth))
+}
+
+// participantFieldsChanged reports whether any identity field differs
+// between the stored participant and the incoming request.
 func participantFieldsChanged(p types.Participant, req types.UpdateParticipantRequest, dob time.Time, ramq *string, dateOfDeath *time.Time) bool {
-	if p.FirstName != req.FirstName || p.LastName != req.LastName || p.SexAtBirthCode != req.SexAtBirthCode || p.VitalStatusCode != req.VitalStatusCode {
-		return true
-	}
-	if !p.DateOfBirth.Equal(dob) {
-		return true
-	}
-	cityOfBirth := toStringPtr(req.CityOfBirth)
-	if (p.CityOfBirth == nil) != (cityOfBirth == nil) || (p.CityOfBirth != nil && cityOfBirth != nil && *p.CityOfBirth != *cityOfBirth) {
-		return true
-	}
-	if (p.RAMQ == nil) != (ramq == nil) || (p.RAMQ != nil && ramq != nil && *p.RAMQ != *ramq) {
-		return true
-	}
-	if (p.DateOfDeath == nil) != (dateOfDeath == nil) || (p.DateOfDeath != nil && dateOfDeath != nil && !p.DateOfDeath.Equal(*dateOfDeath)) {
-		return true
-	}
-	return false
+	return guidFieldsChanged(p, req, dob, ramq) ||
+		p.SexAtBirthCode != req.SexAtBirthCode ||
+		p.VitalStatusCode != req.VitalStatusCode ||
+		!timePtrEqual(p.DateOfDeath, dateOfDeath)
 }
 
 // selfContactChanged compares the old self-contact snapshot against the incoming coordinates.
@@ -124,24 +138,6 @@ func selfContactChanged(old selfContactSnapshot, req types.UpdateParticipantRequ
 // normalizeRAMQ strips spaces and uppercases a RAMQ number for consistent storage.
 func normalizeRAMQ(ramq string) string {
 	return strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(ramq), " ", ""))
-}
-
-// guidFieldsChanged returns true if any GUID-relevant field differs between old participant and incoming request.
-func guidFieldsChanged(p types.Participant, req types.UpdateParticipantRequest, dob time.Time, ramq *string) bool {
-	if p.FirstName != req.FirstName || p.LastName != req.LastName {
-		return true
-	}
-	if !p.DateOfBirth.Equal(dob) {
-		return true
-	}
-	if (p.RAMQ == nil) != (ramq == nil) || (p.RAMQ != nil && ramq != nil && *p.RAMQ != *ramq) {
-		return true
-	}
-	cityOfBirth := toStringPtr(req.CityOfBirth)
-	if (p.CityOfBirth == nil) != (cityOfBirth == nil) || (p.CityOfBirth != nil && cityOfBirth != nil && *p.CityOfBirth != *cityOfBirth) {
-		return true
-	}
-	return false
 }
 
 // validateDates checks that date of birth is not in the future and date of death is after date of birth.

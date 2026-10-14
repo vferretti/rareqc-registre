@@ -118,7 +118,7 @@ func ListParticipantsHandler(repo repository.ParticipantDAO, activityRepo reposi
 
 		if c.Query("export") == "true" {
 			details := exportDetails("participant list", len(participants), c.Request.URL.Query())
-			if err := activityRepo.Log("data_exported", nil, getAuthor(c), &details); err != nil {
+			if err := activityRepo.Log(types.ActionDataExported, nil, getAuthor(c), &details); err != nil {
 				handleInternalError(c, err, "Failed to record export")
 				return
 			}
@@ -274,7 +274,7 @@ func UpdateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 			// Log only if something actually changed
 			if oldChanged || oldSelfChanged {
 				details := fmt.Sprintf("%s %s", req.FirstName, req.LastName)
-				if err := activityRepo.Record(tx, "participant_edited", &participant.ID, author, &details); err != nil {
+				if err := activityRepo.Record(tx, types.ActionParticipantEdited, &participant.ID, author, &details); err != nil {
 					return err
 				}
 			}
@@ -349,7 +349,7 @@ func CreateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 			if err := participantRepo.Create(tx, &participant); err != nil {
 				return err
 			}
-			if err := activityRepo.Record(tx, "participant_created", &participant.ID, author, nil); err != nil {
+			if err := activityRepo.Record(tx, types.ActionParticipantCreated, &participant.ID, author, nil); err != nil {
 				return err
 			}
 
@@ -470,7 +470,7 @@ func DeleteParticipantHandler(participantRepo repository.ParticipantDAO, activit
 		details := fmt.Sprintf("%s %s (#%d)", participant.FirstName, participant.LastName, participant.ID)
 		err = participantRepo.Transaction(func(tx *gorm.DB) error {
 			// Logged first, without participant reference, so the trace survives the cascade.
-			if err := activityRepo.Record(tx, "participant_deleted", nil, author, &details); err != nil {
+			if err := activityRepo.Record(tx, types.ActionParticipantDeleted, nil, author, &details); err != nil {
 				return err
 			}
 			return participantRepo.Delete(tx, id)

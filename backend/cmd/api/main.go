@@ -82,12 +82,12 @@ func main() {
 	slog.Info("shutdown signal received, draining in-flight requests")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil {
+	err = srv.Shutdown(shutdownCtx)
+	database.Close(pgDB)
+	if err != nil {
 		slog.Error("forced shutdown", "error", err)
-		database.Close(pgDB)
 		os.Exit(1)
 	}
-	database.Close(pgDB)
 	slog.Info("server stopped")
 }
 

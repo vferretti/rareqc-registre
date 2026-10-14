@@ -6,6 +6,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
 )
@@ -60,6 +61,9 @@ func Load() (Config, error) {
 		},
 	}
 
+	if err := validateProxies(cfg.TrustedProxies); err != nil {
+		return cfg, err
+	}
 	if !cfg.Production {
 		return cfg, nil
 	}
@@ -107,4 +111,19 @@ func getEnvOrDefault(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// validateProxies checks that every TRUSTED_PROXIES entry is an IP or a
+// CIDR, so a typo is reported at startup rather than silently trusting no
+// one or panicking in the router.
+func validateProxies(proxies []string) error {
+	for _, p := range proxies {
+		if net.ParseIP(p) != nil {
+			continue
+		}
+		if _, _, err := net.ParseCIDR(p); err != nil {
+			return fmt.Errorf("TRUSTED_PROXIES: %q is neither an IP nor a CIDR", p)
+		}
+	}
+	return nil
 }

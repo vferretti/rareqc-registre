@@ -58,7 +58,7 @@ func TestDeleteParticipantIsAuditedBeforeTheDelete(t *testing.T) {
 	if e.action != "participant_deleted" || !e.inTx || e.participantID != nil {
 		t.Errorf("entry = %+v, want participant_deleted, transactional, no participant reference", e)
 	}
-	if e.details != "  (#42)" {
+	if e.details != "Temp Audit (#42)" {
 		t.Errorf("details = %q, want name and id", e.details)
 	}
 	if len(participants.deleteCalls) != 1 || participants.deleteCalls[0] != 42 {

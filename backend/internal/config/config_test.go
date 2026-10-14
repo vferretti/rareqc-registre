@@ -104,3 +104,15 @@ func TestSplitAndTrim(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadValidatesTrustedProxies(t *testing.T) {
+	t.Setenv("GIN_MODE", "")
+	t.Setenv("TRUSTED_PROXIES", "10.0.0.1, 10.1.0.0/16")
+	if _, err := Load(); err != nil {
+		t.Fatalf("valid proxies rejected: %v", err)
+	}
+	t.Setenv("TRUSTED_PROXIES", "10.0.0.1, nginx")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), `"nginx"`) {
+		t.Fatalf("malformed proxy accepted or badly reported: %v", err)
+	}
+}

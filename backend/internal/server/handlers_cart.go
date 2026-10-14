@@ -75,7 +75,7 @@ func CartExportDataHandler(
 		}
 
 		details := fmt.Sprintf("cart export: %d participants (ids %s)", len(participants), joinInts(ids))
-		if err := activityRepo.Log("data_exported", nil, getAuthor(c), &details); err != nil {
+		if err := activityRepo.Log(types.ActionDataExported, nil, getAuthor(c), &details); err != nil {
 			handleInternalError(c, err, "Failed to record export")
 			return
 		}
