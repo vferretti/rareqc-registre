@@ -2,7 +2,7 @@
 
 Application web d'administration pour un registre québécois de maladies rares. Permet la gestion des participants (patients), de leurs contacts, des consentements, du suivi de l'historique des modifications, des rapports et de la sélection en lot (panier).
 
-Le backend (API + base de données) est **partagé** avec le futur portail participant (`rareqc-portal-participant`) : un seul serveur API, une seule base, un seul Keycloak — voir `rareqc-infra/docs/integration-portail.md`.
+Le backend (API + base de données) est **partagé** avec le futur portail participant (`rareqc-portail`) : un seul serveur API, une seule base, un seul Keycloak — voir `rareqc-infra/docs/integration-portail.md`.
 
 ## Stack technique
 
@@ -12,7 +12,7 @@ Le backend (API + base de données) est **partagé** avec le futur portail parti
 | **Auth**     | Keycloak (OIDC, patron BFF — cookies httpOnly, aucun jeton côté navigateur) |
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, i18next, recharts, ExcelJS |
 | **Infra**    | Docker Compose (Go API, Nginx) + plateforme partagée `rareqc-infra` (PostgreSQL, Keycloak) |
-| **Qualité**  | ESLint, Prettier, Husky + lint-staged, tests Go (`go test ./...`)  |
+| **Qualité**  | ESLint, Prettier, Husky + lint-staged, tests Go, govulncheck, npm audit — GitHub Actions `ci` sur chaque push/PR |
 
 ## Prérequis
 
@@ -179,6 +179,16 @@ Patron **BFF** (backend-for-frontend) : le backend Go est le client OIDC confide
 - Le rôle realm est exigé **par groupe de routes** : les routes admin exigent `registre_admin` ; les futures routes `/me/...` du portail participant exigeront `participant`.
 - Le client OIDC est choisi **selon l'origine de la requête** : les origines listées dans `PARTICIPANT_PORTAL_HOSTS` utilisent `portail-participant-bff`, tout le reste `registre-admin-bff`.
 - Un utilisateur authentifié sans le bon rôle voit une page « accès refusé » (pas d'écrans vides).
+
+## Sécurité (résumé)
+
+- **Transport et sessions** : BFF Keycloak, cookies httpOnly `SameSite=Lax`, garde CSRF par en-tête `Origin` sur les POST/PUT/DELETE authentifiés par cookie (les appels `Bearer` en sont exempts), `COOKIE_SECURE` et `https://` exigés en release.
+- **Entrées** : identifiants de chemin validés avant toute requête SQL, corps limités (1 Mo JSON, 11 Mo multipart, 413 au-delà), erreurs PostgreSQL traduites en 409/400 sans jamais exposer les noms de contraintes, 500 génériques corrélés par `X-Request-ID` dans les journaux.
+- **En-têtes** : nosniff, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, CSP stricte sur l'API et CSP dédiée à la SPA dans nginx, HSTS en release.
+- **Journal d'audit** : création, modification et suppression des participants, contacts et consentements, plus chaque export de données ; les entrées survivent à la suppression du participant.
+- **Chaîne de livraison** : images non-root à bases épinglées, `govulncheck` et `npm audit` en CI, Swagger UI servi hors release seulement (les mutations depuis « Try it out » exigent un jeton Bearer, voir `rareqc-infra/scripts/api-token.sh`).
+
+Détails dans `CLAUDE.md` (sections « Authentication » et « HTTP hardening »).
 
 ## Variables d'environnement
 

@@ -189,6 +189,7 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - [x] **B15** ~~Validation d'entrée (binding tags required, formats, upload 10 MB)~~
 - [x] **B16** ~~Corriger les N+1 queries (templates, code tables, external systems)~~
 - [x] **B17** ~~Logging structuré~~ (`slog` — JSON en release, texte en dev ; requêtes HTTP via middleware `requestLogger`, health en debug)
+- [ ] **B19** Normaliser les RAMQ du seed (`scripts/seed/main.go` les écrit avec espaces alors que l'API stocke `BEAA19121472`) : l'index unique ne détecte pas un doublon entre une fiche seedée et une saisie. Vérifier de la même façon toute donnée importée en prod.
 - [ ] **B18** Chiffrement au repos : disque chiffré sur la VM (LUKS/hébergeur) + sauvegardes chiffrées avant sortie de la VM ; évaluer `pgcrypto` pour la RAMQ si exigence de conformité (⚠️ casserait la recherche RAMQ actuelle). En transit DB : `sslmode` configurable (couvert par B5). TLS navigateur↔portail : couvert par A3.
 
 ### Frontend
@@ -201,10 +202,17 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - [x] **A2** ~~Thème de login Keycloak aux couleurs RareQC~~ (`rareqc-infra/keycloak/themes/rareqc/login/`, enfant de `keycloak.v2`, monté par le compose ; `loginTheme` posé dans le realm JSON et appliqué au realm vivant)
 - [x] **A3** ~~Composition staging/prod dans rareqc-infra (proxy TLS, `KC_HOSTNAME` public, secrets régénérés, images GHCR)~~ (`rareqc-infra/docker-compose.prod.yml` + realm de prod rendu par `render-prod-realm.sh` ; images publiées par `.github/workflows/publish-images.yml` sur tag `v*`)
 
+### Ordre suggéré des items ouverts (révision sécurité 2026-10-14)
+1. **A9** — lancer la demande DSI (enregistrement de l'application Entra ID) : dépendance externe, à démarrer tôt.
+2. **A7** — décision de processus (qui lie un compte Keycloak à un participant), puis la colonne `keycloak_sub`.
+3. **A5** — routes `/me/...` une fois A7 tranché.
+4. **B18** — à la mise en place de la VM (disque chiffré, sauvegardes chiffrées).
+5. **B19** — avant tout import de données réelles.
+
 ### Auth — API partagée avec le portail participant (décision 2026-08-03 : un seul serveur API, une seule BD, voir `rareqc-infra/docs/integration-portail.md`)
 - [x] **A4** ~~Rôle par groupe de routes — remplacer le `RequiredRole` global codé en dur~~ (`Middleware(role)` + constantes `auth.RoleAdmin`/`auth.RoleParticipant`)
 - [ ] **A5** Routes participant `/me/...` (`/me/profile`, `/me/consents`, …) filtrées par `auth.UserSub(c)` — jamais d'accès aux listes admin ; contrat à publier dans le Swagger
 - [x] **A6** ~~Sélection du client OIDC selon l'origine de la requête~~ (origines participant dans `PARTICIPANT_PORTAL_HOSTS` → client `portail-participant-bff` ; tout le reste → `registre-admin-bff`)
 - [ ] **A7** Liaison compte Keycloak ↔ participant en BD (prérequis A5) : colonne `keycloak_sub` (unique, nullable) sur `participant` + décision de processus pour la remplir (association par un admin ? correspondance courriel à la première connexion ? enrôlement ?)
-- [ ] **A8** Défense en profondeur côté portail participant (repo `rareqc-portal-participant`) : son nginx ne doit proxifier que `/api/auth/*` et `/api/me/*` — jamais tout `/api` ; à documenter comme exigence dans `rareqc-infra/docs/integration-portail.md`
+- [x] **A8** ~~Défense en profondeur côté portail participant (repo `rareqc-portail`) : son nginx ne doit proxifier que `/api/auth/*` et `/api/me/*` — jamais tout `/api`~~ (exigence documentée dans `rareqc-infra/docs/integration-portail.md` ; à vérifier à la revue du portail)
 - [ ] **A9** Fédération d'identité pour les admins : brancher **Microsoft Entra ID** (comptes M365 du réseau de la santé) comme Identity Provider du realm `rareqc` — plus de mots de passe gérés, MFA et désactivation hérités de la DSI. Requiert l'enregistrement d'une app dans l'Entra de l'organisation (demande DSI). Attribution du rôle `registre_admin` reste manuelle (aucun rôle à l'auto-enrôlement). Précédent : CLIN fédère Microsoft (`idpHint: 'microsoft'`). ⚠️ Pas de Google/Facebook pour les participants (fuite de métadonnées de santé vers un tiers) — pour eux : comptes Keycloak + MFA, et évaluer l'Authentification gouvernementale du Québec au moment du portail participant
