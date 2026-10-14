@@ -1,0 +1,9 @@
+# Only sources reach the build context: no secrets, no local binaries.
+.env
+.env.*
+!.env.example
+api
+seed
+bin/
+docs/
+*_test.go

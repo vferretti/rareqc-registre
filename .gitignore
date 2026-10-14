@@ -2,9 +2,11 @@
 frontend/node_modules/
 frontend/dist/
 
-# Go
+# Go (binaires produits par `go build` à la racine du module)
 backend/bin/
 backend/docs/
+/backend/api
+/backend/seed
 
 # IDE
 .idea/

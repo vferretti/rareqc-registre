@@ -141,6 +141,9 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 | Keycloak   | 8081 (rareqc-infra) |
 
 ## Docker notes
+- Images : builder `golang:1.26-alpine` / `node:22-alpine`, runtime `alpine:3.22` (API et seed, utilisateur non-root `app`) et `nginx:1.28-alpine`. `.dockerignore` exclut `.env*`, binaires et tests. Les binaires `backend/api`/`backend/seed` produits par `go build` sont ignorés par git.
+- `frontend/nginx.conf` : en-têtes de sécurité (CSP incluant le géocodeur `servicescarto.mern.gouv.qc.ca`, nosniff, DENY, no-referrer) via le snippet `nginx-security-headers.conf` inclus dans chaque location ; `client_max_body_size 11m` ; `index.html` en `no-store`, `/assets/` immuable.
+- Publication : tag `v*` → workflow `publish-images` pousse `ghcr.io/<owner>/rareqc-registre-{api,seed,web}` ; `ci` (vet, tests, govulncheck, lint, typecheck, build, npm audit) sur push/PR.
 - Frontend Dockerfile copies `.npmrc` (with `legacy-peer-deps=true`) before `npm ci` to handle `react-joyride` peer dependency conflict with React 19
 - Seed Dockerfile copies consent PDFs from `backend/scripts/seed/` to `/data/`
 - When rebuilding after code changes: `docker compose --profile dev build --no-cache seed` then run seed
@@ -196,7 +199,7 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 ### Auth (suite)
 - [x] **A1** ~~Client `portail-participant-bff` dans le realm~~ (créé, avec `participant-test` — voir `rareqc-infra/docs/integration-portail.md`)
 - [x] **A2** ~~Thème de login Keycloak aux couleurs RareQC~~ (`rareqc-infra/keycloak/themes/rareqc/login/`, enfant de `keycloak.v2`, monté par le compose ; `loginTheme` posé dans le realm JSON et appliqué au realm vivant)
-- [ ] **A3** Composition staging/prod dans rareqc-infra (proxy TLS, `KC_HOSTNAME` public, secrets régénérés, images GHCR)
+- [x] **A3** ~~Composition staging/prod dans rareqc-infra (proxy TLS, `KC_HOSTNAME` public, secrets régénérés, images GHCR)~~ (`rareqc-infra/docker-compose.prod.yml` + realm de prod rendu par `render-prod-realm.sh` ; images publiées par `.github/workflows/publish-images.yml` sur tag `v*`)
 
 ### Auth — API partagée avec le portail participant (décision 2026-08-03 : un seul serveur API, une seule BD, voir `rareqc-infra/docs/integration-portail.md`)
 - [x] **A4** ~~Rôle par groupe de routes — remplacer le `RequiredRole` global codé en dur~~ (`Middleware(role)` + constantes `auth.RoleAdmin`/`auth.RoleParticipant`)

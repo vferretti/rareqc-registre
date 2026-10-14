@@ -202,6 +202,22 @@ Tout est documenté dans [`backend/.env.example`](backend/.env.example) — les 
 | `COOKIE_SECURE` | `false` | Flag `Secure` des cookies — **`true` exigé en release** (comme `https://` sur `KEYCLOAK_HOST`, `PORTAL_HOST` et `PARTICIPANT_PORTAL_HOSTS`) |
 | `STORAGE_TYPE` | `database` | Stockage des documents (`database` ou `s3`) |
 
+## Déploiement (production / staging)
+
+La composition de production vit dans le repo **rareqc-infra**
+(`docker-compose.prod.yml`, Caddy TLS, realm Keycloak de production). Elle
+consomme les images publiées sur GHCR par le workflow `publish-images` :
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0   # → ghcr.io/<owner>/rareqc-registre-{api,seed,web}:v1.0.0
+```
+
+Puis, sur la VM, mettre `REGISTRE_IMAGE_TAG=v1.0.0` dans `.env.prod` et
+relancer la composition (voir le README de rareqc-infra). En release
+(`GIN_MODE=release`) l'API refuse de démarrer si un secret est resté à sa
+valeur de dev, si `COOKIE_SECURE` n'est pas `true` ou si une URL n'est pas
+`https://`.
+
 ## Stockage des documents
 
 Les documents supportent deux backends de stockage :

@@ -9,21 +9,24 @@ services:
       target: production
     ports:
       - "8082:8080"
+    # Valeurs par défaut = dev local (plateforme rareqc-infra). La composition
+    # de production vit dans rareqc-infra (docker-compose.prod.yml) et
+    # consomme l'image publiée plutôt que ce build.
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_USER: rareqc
-      POSTGRES_PASSWORD: rareqc
-      POSTGRES_DB: rareqc_registre
+      POSTGRES_USER: ${POSTGRES_USER:-rareqc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rareqc}
+      POSTGRES_DB: ${POSTGRES_DB:-rareqc_registre}
       # Auth BFF (Keycloak de rareqc-infra). Le navigateur voit Keycloak sur
       # localhost:8081 ; le conteneur l'atteint via le réseau rareqc-net.
-      KEYCLOAK_HOST: http://localhost:8081
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-http://localhost:8081}
       KEYCLOAK_INTERNAL_HOST: http://keycloak:8080
       KEYCLOAK_REALM: rareqc
       KEYCLOAK_CLIENT: registre-admin-bff
-      KEYCLOAK_CLIENT_SECRET: dev-only-registre-admin-secret
-      SESSION_SECRET: dev-only-session-secret-change-me
-      PORTAL_HOST: http://localhost:3001
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-dev-only-registre-admin-secret}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me}
+      PORTAL_HOST: ${PORTAL_HOST:-http://localhost:3001}
     # postgres vit dans la composition rareqc-infra : pas de depends_on
     # possible entre projets — restart couvre l'attente au démarrage.
     restart: unless-stopped
@@ -43,9 +46,9 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_USER: rareqc
-      POSTGRES_PASSWORD: rareqc
-      POSTGRES_DB: rareqc_registre
+      POSTGRES_USER: ${POSTGRES_USER:-rareqc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rareqc}
+      POSTGRES_DB: ${POSTGRES_DB:-rareqc_registre}
     depends_on:
       api:
         condition: service_healthy
