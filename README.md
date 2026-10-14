@@ -80,17 +80,12 @@ La page d'accueil redirige vers Keycloak (thème RareQC). Utilisateurs de test (
 
 ### Après un changement de code backend
 
-`docker compose up --build` utilise le cache Docker. Si vous modifiez le code Go, les changements ne seront **pas** pris en compte à moins de forcer un rebuild :
-
 ```bash
-# Rebuild sans cache + redémarrer
-docker compose build --no-cache api && docker compose up -d api
-
-# Puis re-seed si le schéma a changé
-docker compose --profile dev run --rm seed
+docker compose up --build -d api     # recompile l'image (les sources copiées invalident le cache)
+docker compose --profile dev run --rm seed   # si le jeu de données ou le schéma a changé
 ```
 
-> **Pourquoi ?** Docker met en cache chaque layer du Dockerfile. Si seul le code source change mais que les layers `COPY go.mod` et `go mod download` sont identiques, Docker réutilise le binaire compilé précédemment. Le flag `--no-cache` force la recompilation complète.
+Les migrations SQL de `backend/migrations/` s'appliquent au démarrage de l'API.
 
 ### Réinitialiser la base de données
 
@@ -211,6 +206,7 @@ Tout est documenté dans [`backend/.env.example`](backend/.env.example) — les 
 | `PORTAL_HOST` | `http://localhost:5173` | Origine du portail admin (redirect de secours OIDC, garde CSRF) — `https://` exigé en release |
 | `COOKIE_SECURE` | `false` | Flag `Secure` des cookies — **`true` exigé en release** (comme `https://` sur `KEYCLOAK_HOST`, `PORTAL_HOST` et `PARTICIPANT_PORTAL_HOSTS`) |
 | `STORAGE_TYPE` | `database` | Stockage des documents (`database` ou `s3`) |
+| `SEED_ALLOW_DESTRUCTIVE` | *(vide)* | Seed uniquement : `yes` requis pour accepter d'écraser une base en release |
 
 ## Déploiement (production / staging)
 
@@ -237,9 +233,7 @@ Les documents supportent deux backends de stockage :
 | **Base de données** | `database` (défaut) | Table `document_file` (bytea) | Servi par l'API |
 | **Object store** | `s3` | Bucket S3-compatible | Redirection 307 |
 
-En développement, le mode `database` est utilisé par défaut. En production, configurer `STORAGE_TYPE=s3` avec les variables S3 appropriées.
-
-> **Note** : L'upload vers S3 n'est pas encore implémenté. Seul le redirect au téléchargement est en place.
+Le mode `database` est utilisé en dev **et** dans la composition de production actuelle (les PDF de consentement, ~200 ko chacun, restent raisonnables en base). Le mode `s3` n'a que la redirection au téléchargement : l'upload vers S3 reste à implémenter avant de l'activer.
 
 ## Licence
 
