@@ -212,13 +212,15 @@
     "submit": "Enregistrer",
     "success": "Participant ajouté avec succès",
     "error": "Erreur lors de la création du participant",
+    "error_duplicate_ramq": "Un participant avec ce numéro de RAMQ existe déjà",
     "ramq_placeholder": "TREG 8501 0112"
   },
   "edit_participant": {
     "title": "Modifier le participant",
     "submit": "Enregistrer les modifications",
     "success": "Participant modifié avec succès",
-    "error": "Erreur lors de la modification du participant"
+    "error": "Erreur lors de la modification du participant",
+    "error_duplicate_ramq": "Un participant avec ce numéro de RAMQ existe déjà"
   },
   "participant_detail": {
     "section_identity": "Identité",
@@ -350,7 +352,9 @@
       "participant_edited": "Participant modifié",
       "contact_deleted": "Contact supprimé",
       "consent_added": "Consentement ajouté",
-      "consent_edited": "Consentement modifié"
+      "consent_edited": "Consentement modifié",
+      "participant_deleted": "Participant supprimé",
+      "data_exported": "Données exportées"
     },
     "clause_type": {
       "registry": "Participation au registre",

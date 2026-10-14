@@ -211,13 +211,15 @@
     "submit": "Save",
     "success": "Participant added successfully",
     "error": "Error creating participant",
+    "error_duplicate_ramq": "A participant with this RAMQ number already exists",
     "ramq_placeholder": "TREG 8501 0112"
   },
   "edit_participant": {
     "title": "Edit participant",
     "submit": "Save changes",
     "success": "Participant updated successfully",
-    "error": "Error updating participant"
+    "error": "Error updating participant",
+    "error_duplicate_ramq": "A participant with this RAMQ number already exists"
   },
   "participant_detail": {
     "section_identity": "Identity",
@@ -349,7 +351,9 @@
       "participant_edited": "Participant edited",
       "contact_deleted": "Contact deleted",
       "consent_added": "Consent added",
-      "consent_edited": "Consent edited"
+      "consent_edited": "Consent edited",
+      "participant_deleted": "Participant deleted",
+      "data_exported": "Data exported"
     },
     "clause_type": {
       "registry": "Registry participation",

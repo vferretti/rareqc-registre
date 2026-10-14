@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -33,6 +34,7 @@ func CartExportDataHandler(
 	participantRepo repository.ParticipantDAO,
 	consentRepo repository.ConsentDAO,
 	extIDRepo repository.ExternalIDDAO,
+	activityRepo repository.ActivityDAO,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		items, err := cartRepo.ListItems(auth.UserSub(c))
@@ -69,6 +71,12 @@ func CartExportDataHandler(
 		extIDs, err := extIDRepo.ListByParticipantIDs(ids)
 		if err != nil {
 			handleInternalError(c, err, "Failed to fetch external IDs")
+			return
+		}
+
+		details := fmt.Sprintf("cart export: %d participants (ids %s)", len(participants), joinInts(ids))
+		if err := activityRepo.Log("data_exported", nil, getAuthor(c), &details); err != nil {
+			handleInternalError(c, err, "Failed to record export")
 			return
 		}
 
@@ -165,7 +173,7 @@ func AddCartItemsHandler(repo repository.CartDAO) gin.HandlerFunc {
 			return
 		}
 		if err := repo.AddItems(auth.UserSub(c), req.ParticipantIDs); err != nil {
-			handleInternalError(c, err, "Failed to add items")
+			handleWriteError(c, err, "Failed to add items")
 			return
 		}
 		count, _ := repo.CountItems(auth.UserSub(c))
@@ -320,7 +328,7 @@ func CreateCartCommunicationsHandler(
 			return nil
 		})
 		if err != nil {
-			handleInternalError(c, err, "Failed to create communications")
+			handleWriteError(c, err, "Failed to create communications")
 			return
 		}
 

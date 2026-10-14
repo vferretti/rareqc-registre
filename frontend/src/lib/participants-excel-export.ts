@@ -27,6 +27,7 @@ export async function exportParticipantsExcel(
   t: TFunc,
 ): Promise<void> {
   const urlParams = new URLSearchParams({
+    export: "true",
     page_index: "0",
     page_size: String(params.total || 200),
     sort_field: params.sorting[0]?.id ?? "last_name",

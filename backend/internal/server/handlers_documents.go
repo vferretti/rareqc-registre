@@ -91,7 +91,7 @@ func UploadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 		}
 
 		if err := docRepo.Create(&doc, fileBytes); err != nil {
-			handleInternalError(c, err, "Failed to create document")
+			handleWriteError(c, err, "Failed to create document")
 			return
 		}
 

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import api from "@/lib/api";
+import { isApiConflict } from "@/lib/api-error";
 import { AddressInput } from "@/components/base/address-autocomplete";
 import {
   participantSchema,
@@ -186,9 +187,14 @@ export function ParticipantFormDialog({
       form.reset(DEFAULT_VALUES);
       onOpenChange(false);
       onSuccess?.(createdId);
-    } catch {
+    } catch (err) {
+      const prefix = isEdit ? "edit_participant" : "create_participant";
       setSubmitError(
-        t(isEdit ? "edit_participant.error" : "create_participant.error"),
+        t(
+          isApiConflict(err)
+            ? `${prefix}.error_duplicate_ramq`
+            : `${prefix}.error`,
+        ),
       );
     }
   };

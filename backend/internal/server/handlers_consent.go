@@ -210,7 +210,7 @@ func CreateParticipantConsentHandler(consentRepo repository.ConsentDAO, contactR
 			return activityRepo.Record(tx, "consent_added", &participantID, author, &details)
 		})
 		if err != nil {
-			handleInternalError(c, err, "Failed to create consent")
+			handleWriteError(c, err, "Failed to create consent")
 			return
 		}
 
@@ -340,7 +340,7 @@ func UpdateConsentHandler(consentRepo repository.ConsentDAO, contactRepo reposit
 			return nil
 		})
 		if err != nil {
-			handleInternalError(c, err, "Failed to update consent")
+			handleWriteError(c, err, "Failed to update consent")
 			return
 		}
 
@@ -444,7 +444,7 @@ func CreateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		}
 
 		if err := consentRepo.CreateTemplate(&doc, fileBytes, clauses); err != nil {
-			handleInternalError(c, err, "Failed to create template")
+			handleWriteError(c, err, "Failed to create template")
 			return
 		}
 
@@ -482,7 +482,7 @@ func DeleteConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		}
 
 		if err := consentRepo.DeleteTemplate(id); err != nil {
-			handleInternalError(c, err, "Failed to delete template")
+			handleWriteError(c, err, "Failed to delete template")
 			return
 		}
 
@@ -577,7 +577,7 @@ func UpdateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		}
 
 		if err := consentRepo.UpdateTemplate(id, name, fileBytes, clauses); err != nil {
-			handleInternalError(c, err, "Failed to update template")
+			handleWriteError(c, err, "Failed to update template")
 			return
 		}
 

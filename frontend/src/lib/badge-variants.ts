@@ -50,4 +50,6 @@ export const ACTION_BADGE: Record<
   contact_deleted: "destructive",
   consent_added: "green",
   consent_edited: "amber",
+  participant_deleted: "destructive",
+  data_exported: "secondary",
 };

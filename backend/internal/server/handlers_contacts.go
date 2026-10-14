@@ -112,7 +112,7 @@ func AddContactHandler(participantRepo repository.ParticipantDAO, contactRepo re
 		})
 
 		if err != nil {
-			handleInternalError(c, err, "Failed to create contact")
+			handleWriteError(c, err, "Failed to create contact")
 			return
 		}
 
@@ -211,7 +211,7 @@ func UpdateContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 		})
 
 		if err != nil {
-			handleInternalError(c, err, "Failed to update contact")
+			handleWriteError(c, err, "Failed to update contact")
 			return
 		}
 
@@ -296,7 +296,7 @@ func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 		})
 
 		if err != nil {
-			handleInternalError(c, err, "Failed to delete contact")
+			handleWriteError(c, err, "Failed to delete contact")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})

@@ -77,12 +77,12 @@ func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engin
 		api.GET("/enums", EnumsHandler(codeTableRepo))
 		api.GET("/reports/summary", ReportsSummaryHandler(reportsRepo))
 
-		api.GET("/participants", ListParticipantsHandler(participantRepo))
+		api.GET("/participants", ListParticipantsHandler(participantRepo, activityRepo))
 		api.GET("/participants/:id", GetParticipantHandler(participantRepo))
 		api.POST("/participants/resolve-ids", ResolveIDsHandler(participantRepo, extIDRepo, guidRepo))
 		api.POST("/participants", CreateParticipantHandler(participantRepo, contactRepo, activityRepo))
 		api.PUT("/participants/:id", UpdateParticipantHandler(participantRepo, contactRepo, activityRepo))
-		api.DELETE("/participants/:id", DeleteParticipantHandler(participantRepo))
+		api.DELETE("/participants/:id", DeleteParticipantHandler(participantRepo, activityRepo))
 
 		api.POST("/participants/:id/contacts", AddContactHandler(participantRepo, contactRepo, activityRepo))
 		api.PUT("/contacts/:contactId", UpdateContactHandler(contactRepo, activityRepo))
@@ -131,7 +131,7 @@ func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engin
 			cart.POST("/items", AddCartItemsHandler(cartRepo))
 			cart.DELETE("/items", RemoveCartItemsHandler(cartRepo))
 			cart.DELETE("", ClearCartHandler(cartRepo))
-			cart.POST("/export-data", CartExportDataHandler(cartRepo, participantRepo, consentRepo, extIDRepo))
+			cart.POST("/export-data", CartExportDataHandler(cartRepo, participantRepo, consentRepo, extIDRepo, activityRepo))
 			cart.POST("/communications", CreateCartCommunicationsHandler(cartRepo, commRepo))
 		}
 	}

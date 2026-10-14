@@ -106,7 +106,7 @@ func CreateParticipantCommunicationHandler(commRepo repository.CommunicationDAO)
 		}
 
 		if err := commRepo.Create(&comm); err != nil {
-			handleInternalError(c, err, "Failed to create communication")
+			handleWriteError(c, err, "Failed to create communication")
 			return
 		}
 
@@ -163,7 +163,7 @@ func UpdateCommunicationHandler(commRepo repository.CommunicationDAO) gin.Handle
 		comm.Comment = req.Comment
 
 		if err := commRepo.Update(&comm); err != nil {
-			handleInternalError(c, err, "Failed to update communication")
+			handleWriteError(c, err, "Failed to update communication")
 			return
 		}
 
@@ -196,7 +196,7 @@ func DeleteCommunicationHandler(commRepo repository.CommunicationDAO) gin.Handle
 		}
 
 		if err := commRepo.Delete(communicationID); err != nil {
-			handleInternalError(c, err, "Failed to delete communication")
+			handleWriteError(c, err, "Failed to delete communication")
 			return
 		}
 

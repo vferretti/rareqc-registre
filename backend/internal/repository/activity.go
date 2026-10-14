@@ -11,6 +11,7 @@ import (
 // ActivityDAO defines the interface for activity log data access.
 type ActivityDAO interface {
 	Record(tx *gorm.DB, actionTypeCode string, participantID *int, author string, details *string) error
+	Log(actionTypeCode string, participantID *int, author string, details *string) error
 	List(p ListParams) ([]ActivityLogResponse, int, int, error)
 }
 
@@ -33,6 +34,12 @@ func (r *ActivityRepository) Record(tx *gorm.DB, actionTypeCode string, particip
 		Details:        details,
 	}
 	return tx.Create(&log).Error
+}
+
+// Log inserts an activity log entry outside any caller transaction, for
+// read-only operations that must still leave a trace (exports).
+func (r *ActivityRepository) Log(actionTypeCode string, participantID *int, author string, details *string) error {
+	return r.Record(r.db, actionTypeCode, participantID, author, details)
 }
 
 // ActivityLogResponse extends ActivityLog with the participant's full name for display.

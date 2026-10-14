@@ -74,6 +74,7 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - **RAMQ is unique** — unique index on `participant.ramq`
 - **External system IDs** — unique constraint on `(external_system_id, participant_id)`
 - **Consent templates cannot be edited/deleted if signed** — API returns 409, frontend disables buttons with tooltip explanation
+- **Activity log is an audit trail** — `activity_log.participant_id` is `ON DELETE SET NULL` (migration 000002), so entries outlive the participant. Audited events: participant create/edit/delete, contact create/edit/delete, consent add/edit, `data_exported` (cart export and `GET /participants?export=true`, which the Excel export sends). `participant_deleted` is written in the same transaction, before the delete; a failed audit write aborts the operation.
 
 ## Frontend conventions
 - Node 22 (via nvm)
@@ -167,7 +168,7 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - `/api` group: `bodyLimit` (1 MB JSON, 11 MB multipart — cuts the body before any handler reads it; `MaxMultipartMemory` = 10 MB) and `csrfGuard` — POST/PUT/DELETE authenticated by cookie must carry an `Origin` (or `Referer`) matching `PORTAL_HOST` or `PARTICIPANT_PORTAL_HOSTS`; `Authorization: Bearer` calls are exempt. Swagger UI from `localhost:8080` therefore needs a Bearer token for mutations.
 - Swagger UI (`/swagger`) is registered only outside release.
 - `http.Server` timeouts: header 10 s, read 60 s, write 120 s, idle 120 s, 64 KB headers.
-- Errors: `handleInternalError(c, err, msg)` logs `err` with the request id and returns the generic `msg`; never send `err.Error()` to the client.
+- Errors: `handleInternalError(c, err, msg)` logs `err` with the request id and returns the generic `msg`; never send `err.Error()` to the client. Mutations go through `handleWriteError(c, err, msg)` (GORM `TranslateError` is on): unique violation → 409 (business wording per constraint in `uniqueConstraintMessages`, e.g. duplicate RAMQ), FK violation → 400 on insert/update, 409 on delete, check violation → 400, not found → 404, anything else → 500. Constraint names never reach the client; the frontend maps a 409 with `isApiConflict` (`src/lib/api-error.ts`).
 - GORM logger: `ParameterizedQueries` (no bound values in logs), warnings only, 500 ms slow threshold.
 - Seed script refuses to run with `GIN_MODE=release` unless `SEED_ALLOW_DESTRUCTIVE=yes`.
 

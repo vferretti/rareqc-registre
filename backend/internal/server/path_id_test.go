@@ -30,7 +30,7 @@ func (m *mockParticipantDAO) FindByID(id int) (types.Participant, error) {
 	m.findCalls = append(m.findCalls, id)
 	return types.Participant{ID: id}, m.findErr
 }
-func (m *mockParticipantDAO) Delete(id int) error {
+func (m *mockParticipantDAO) Delete(_ *gorm.DB, id int) error {
 	m.deleteCalls = append(m.deleteCalls, id)
 	return nil
 }
@@ -38,11 +38,11 @@ func (m *mockParticipantDAO) FindByIDs([]int) ([]types.Participant, error) { ret
 func (m *mockParticipantDAO) List(types.PaginationParams) ([]repository.ParticipantListItem, int, int, error) {
 	return nil, 0, 0, nil
 }
-func (m *mockParticipantDAO) Create(*gorm.DB, *types.Participant) error { return nil }
-func (m *mockParticipantDAO) Save(*gorm.DB, *types.Participant) error   { return nil }
-func (m *mockParticipantDAO) Exists(int) (bool, error)                  { return true, nil }
-func (m *mockParticipantDAO) Transaction(func(tx *gorm.DB) error) error { return nil }
-func (m *mockParticipantDAO) Reload(*types.Participant) error           { return nil }
+func (m *mockParticipantDAO) Create(*gorm.DB, *types.Participant) error    { return nil }
+func (m *mockParticipantDAO) Save(*gorm.DB, *types.Participant) error      { return nil }
+func (m *mockParticipantDAO) Exists(int) (bool, error)                     { return true, nil }
+func (m *mockParticipantDAO) Transaction(fn func(tx *gorm.DB) error) error { return fn(nil) }
+func (m *mockParticipantDAO) Reload(*types.Participant) error              { return nil }
 
 // mockContactDAO records FindByID calls; the other methods are never reached.
 type mockContactDAO struct {
@@ -93,7 +93,7 @@ func TestParticipantHandlersRejectNonNumericIDs(t *testing.T) {
 		})
 		t.Run("DELETE "+id, func(t *testing.T) {
 			repo := &mockParticipantDAO{}
-			w := performRequest(DeleteParticipantHandler(repo), http.MethodDelete, "/participants/x", "",
+			w := performRequest(DeleteParticipantHandler(repo, &mockActivityDAO{}), http.MethodDelete, "/participants/x", "",
 				gin.Param{Key: "id", Value: id})
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want 400", w.Code)
@@ -128,7 +128,7 @@ func TestParticipantHandlersPassNumericIDAsInt(t *testing.T) {
 	}
 
 	repo = &mockParticipantDAO{}
-	w = performRequest(DeleteParticipantHandler(repo), http.MethodDelete, "/participants/42", "",
+	w = performRequest(DeleteParticipantHandler(repo, &mockActivityDAO{}), http.MethodDelete, "/participants/42", "",
 		gin.Param{Key: "id", Value: "42"})
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want 204", w.Code)
@@ -226,7 +226,7 @@ func TestEveryIDHandlerRejectsInvalidIDs(t *testing.T) {
 	}{
 		{"GetParticipant", "id", http.MethodGet, GetParticipantHandler(nil), false},
 		{"UpdateParticipant", "id", http.MethodPut, UpdateParticipantHandler(nil, nil, nil), false},
-		{"DeleteParticipant", "id", http.MethodDelete, DeleteParticipantHandler(nil), false},
+		{"DeleteParticipant", "id", http.MethodDelete, DeleteParticipantHandler(nil, nil), false},
 		{"AddContact", "id", http.MethodPost, AddContactHandler(nil, nil, nil), false},
 		{"UpdateContact", "contactId", http.MethodPut, UpdateContactHandler(nil, nil), false},
 		{"DeleteContact", "contactId", http.MethodDelete, DeleteContactHandler(nil, nil), false},

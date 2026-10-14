@@ -1,6 +1,11 @@
 package server
 
 import (
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"registre-admin/internal/auth"
 )
@@ -16,4 +21,30 @@ func getAuthor(c *gin.Context) string {
 		author = author[:maxAuthorLength]
 	}
 	return author
+}
+
+// exportDetails describes an audited export: the row count and the query
+// that selected the rows, without pagination noise.
+func exportDetails(what string, rows int, query url.Values) string {
+	filters := url.Values{}
+	for key, values := range query {
+		switch key {
+		case "export", "page_index", "page_size":
+			continue
+		}
+		filters[key] = values
+	}
+	if len(filters) == 0 {
+		return fmt.Sprintf("%s export: %d rows", what, rows)
+	}
+	return fmt.Sprintf("%s export: %d rows (%s)", what, rows, filters.Encode())
+}
+
+// joinInts renders ids as a compact comma-separated list.
+func joinInts(ids []int) string {
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = strconv.Itoa(id)
+	}
+	return strings.Join(parts, ",")
 }

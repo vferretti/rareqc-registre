@@ -101,11 +101,12 @@ type resolveIDsResponse struct {
 // @Param       sort_field query string false "Sort field"             default(last_name)
 // @Param       sort_order query string false "Sort order (asc/desc)" default(asc)
 // @Param       search     query string false "Search term (name, RAMQ, etc.)"
+// @Param       export     query bool   false "Set to true when the result feeds a file export: the export is then recorded in the activity log"
 // @Success     200 {object} types.PaginatedResponse[repository.ParticipantListItem]
 // @Failure     500 {object} types.ErrorResponse
 // @Security BearerAuth
 // @Router      /participants [get]
-func ListParticipantsHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
+func ListParticipantsHandler(repo repository.ParticipantDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		params := parsePaginationParams(c, "last_name")
 
@@ -113,6 +114,14 @@ func ListParticipantsHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
 		if err != nil {
 			handleInternalError(c, err, "Failed to fetch participants")
 			return
+		}
+
+		if c.Query("export") == "true" {
+			details := exportDetails("participant list", len(participants), c.Request.URL.Query())
+			if err := activityRepo.Log("data_exported", nil, getAuthor(c), &details); err != nil {
+				handleInternalError(c, err, "Failed to record export")
+				return
+			}
 		}
 
 		c.JSON(http.StatusOK, types.PaginatedResponse[repository.ParticipantListItem]{
@@ -274,7 +283,7 @@ func UpdateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 		})
 
 		if err != nil {
-			handleInternalError(c, err, "Failed to update participant")
+			handleWriteError(c, err, "Failed to update participant")
 			return
 		}
 
@@ -419,7 +428,7 @@ func CreateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 		})
 
 		if err != nil {
-			handleInternalError(c, err, "Failed to create participant")
+			handleWriteError(c, err, "Failed to create participant")
 			return
 		}
 
@@ -434,29 +443,40 @@ func CreateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 // DeleteParticipantHandler permanently deletes a participant and all related data (cascade).
 //
 // @Summary     Delete a participant
-// @Description Permanently deletes a participant and all associated data (contacts, consents, communications, activity logs, GUIDs, external IDs, cart items). This action is irreversible.
+// @Description Permanently deletes a participant and all associated data (contacts, consents, communications, GUIDs, external IDs, cart items). Activity-log entries are kept without participant reference, and the deletion itself is logged. This action is irreversible.
 // @Tags        participants
 // @Param       id path int true "Participant ID"
 // @Success     204
 // @Failure     400 {object} types.ErrorResponse
 // @Failure     404 {object} types.ErrorResponse
+// @Failure     409 {object} types.ErrorResponse
 // @Failure     500 {object} types.ErrorResponse
 // @Security BearerAuth
 // @Router      /participants/{id} [delete]
-func DeleteParticipantHandler(participantRepo repository.ParticipantDAO) gin.HandlerFunc {
+func DeleteParticipantHandler(participantRepo repository.ParticipantDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, ok := parsePathID(c, "id", "participant")
 		if !ok {
 			return
 		}
 
-		if _, err := participantRepo.FindByID(id); err != nil {
+		participant, err := participantRepo.FindByID(id)
+		if err != nil {
 			handleNotFound(c, "Participant")
 			return
 		}
 
-		if err := participantRepo.Delete(id); err != nil {
-			handleInternalError(c, err, "Failed to delete participant")
+		author := getAuthor(c)
+		details := fmt.Sprintf("%s %s (#%d)", participant.FirstName, participant.LastName, participant.ID)
+		err = participantRepo.Transaction(func(tx *gorm.DB) error {
+			// Logged first, without participant reference, so the trace survives the cascade.
+			if err := activityRepo.Record(tx, "participant_deleted", nil, author, &details); err != nil {
+				return err
+			}
+			return participantRepo.Delete(tx, id)
+		})
+		if err != nil {
+			handleWriteError(c, err, "Failed to delete participant")
 			return
 		}
 
