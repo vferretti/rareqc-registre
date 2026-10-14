@@ -53,9 +53,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Timeouts bound slow or idle clients (Slowloris); the write budget
+	// covers the 10 MB uploads and the cart exports.
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: server.SetupRouter(pgDB, cfg, authCfg),
+		Addr:              ":" + cfg.Port,
+		Handler:           server.SetupRouter(pgDB, cfg, authCfg),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    64 << 10,
 	}
 
 	go func() {
@@ -77,8 +84,10 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("forced shutdown", "error", err)
+		database.Close(pgDB)
 		os.Exit(1)
 	}
+	database.Close(pgDB)
 	slog.Info("server stopped")
 }
 

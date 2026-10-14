@@ -31,7 +31,7 @@ func ListParticipantExternalIDsHandler(extIDRepo repository.ExternalIDDAO) gin.H
 
 		extIDs, err := extIDRepo.ListByParticipant(participantID)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch external IDs")
+			handleInternalError(c, err, "Failed to fetch external IDs")
 			return
 		}
 

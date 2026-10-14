@@ -78,6 +78,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid configuration: %v", err)
 	}
+	// The seed wipes every table: never against a production database
+	// unless explicitly forced.
+	if cfg.Production && os.Getenv("SEED_ALLOW_DESTRUCTIVE") != "yes" {
+		log.Fatalf("refusing to seed in production (GIN_MODE=release) on %s/%s: set SEED_ALLOW_DESTRUCTIVE=yes to force",
+			cfg.DB.Host, cfg.DB.Name)
+	}
+	log.Printf("Seeding %s/%s (all existing data will be deleted)", cfg.DB.Host, cfg.DB.Name)
 	db, err := database.NewPostgresDB(cfg.DB)
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
@@ -106,12 +113,12 @@ func main() {
 	}
 	quarters := []quarterSlot{
 		{time.Date(2024, 7, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 9, 30, 0, 0, 0, 0, time.UTC)},   // 24Q3
-		{time.Date(2024, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 12, 31, 0, 0, 0, 0, time.UTC)},  // 24Q4
-		{time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 3, 31, 0, 0, 0, 0, time.UTC)},    // 25Q1
-		{time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 6, 30, 0, 0, 0, 0, time.UTC)},    // 25Q2
-		{time.Date(2025, 7, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 9, 30, 0, 0, 0, 0, time.UTC)},    // 25Q3
-		{time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)},  // 25Q4
-		{time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},    // 26Q1
+		{time.Date(2024, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 12, 31, 0, 0, 0, 0, time.UTC)}, // 24Q4
+		{time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 3, 31, 0, 0, 0, 0, time.UTC)},   // 25Q1
+		{time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 6, 30, 0, 0, 0, 0, time.UTC)},   // 25Q2
+		{time.Date(2025, 7, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 9, 30, 0, 0, 0, 0, time.UTC)},   // 25Q3
+		{time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)}, // 25Q4
+		{time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},   // 26Q1
 	}
 	// Progressive distribution: 10, 15, 20, 25, 35, 45, 50 = 200
 	perQuarter := []int{10, 15, 20, 25, 35, 45, 50}

@@ -27,7 +27,7 @@ func SearchHandler(repo repository.SearchDAO) gin.HandlerFunc {
 		}
 		results, err := repo.Search(q)
 		if err != nil {
-			handleInternalError(c, "Failed to search")
+			handleInternalError(c, err, "Failed to search")
 			return
 		}
 		c.JSON(http.StatusOK, results)

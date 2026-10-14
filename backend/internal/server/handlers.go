@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -15,10 +16,17 @@ import (
 	"registre-admin/internal/types"
 )
 
-// SetupRouter configures the Gin engine with CORS, Swagger, and all API routes.
+// SetupRouter configures the Gin engine with the hardening middlewares,
+// CORS, Swagger (dev only) and all API routes.
 func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engine {
 	r := gin.New()
-	r.Use(requestLogger(), gin.Recovery())
+	// Only proxies listed in TRUSTED_PROXIES may set X-Forwarded-For /
+	// X-Forwarded-Proto; with none, c.ClientIP() is the TCP peer.
+	if err := r.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		panic(fmt.Sprintf("invalid TRUSTED_PROXIES: %v", err))
+	}
+	r.MaxMultipartMemory = maxUploadBytes
+	r.Use(requestID(), requestLogger(), recovery(), securityHeaders(cfg.Production))
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSAllowedOrigins,
@@ -27,7 +35,10 @@ func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engin
 		AllowCredentials: false,
 	}))
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Swagger UI documents the whole attack surface: dev only.
+	if !cfg.Production {
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	// BFF authentication (Keycloak) — see internal/auth.
 	authService := auth.NewService(authCfg)
@@ -49,6 +60,10 @@ func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engin
 
 	api := r.Group("/api")
 	{
+		// Body caps and the Origin check apply to every /api route,
+		// including the cookie-authenticated POST /auth/logout.
+		api.Use(bodyLimit(), csrfGuard(authCfg.BrowserOrigins()))
+
 		// Public routes: health check and the BFF auth endpoints.
 		api.GET("/health", HealthHandler(db))
 		authService.RegisterRoutes(api)

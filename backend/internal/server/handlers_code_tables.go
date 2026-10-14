@@ -33,7 +33,7 @@ func ListCodeTablesHandler(repo repository.CodeTableDAO) gin.HandlerFunc {
 		for _, table := range tables {
 			entries, err := repo.List(table)
 			if err != nil {
-				handleInternalError(c, fmt.Sprintf("Failed to list %s", table))
+				handleInternalError(c, err, fmt.Sprintf("Failed to list %s", table))
 				return
 			}
 

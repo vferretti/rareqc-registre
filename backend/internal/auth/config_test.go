@@ -51,11 +51,72 @@ func TestLoadConfigProductionRejectsDevSecrets(t *testing.T) {
 	}
 }
 
-func TestLoadConfigProductionAcceptsRealSecrets(t *testing.T) {
+// setProductionEnv provides a complete, valid production configuration;
+// tests then break one setting at a time.
+func setProductionEnv(t *testing.T) {
+	t.Helper()
 	clearAuthEnv(t)
-	t.Setenv("SESSION_SECRET", "real-session-secret")
+	t.Setenv("SESSION_SECRET", "real-session-secret-with-enough-entropy-0123456789")
 	t.Setenv("KEYCLOAK_CLIENT_SECRET", "real-client-secret")
 	t.Setenv("KEYCLOAK_PARTICIPANT_CLIENT_SECRET", "real-participant-secret")
+	t.Setenv("KEYCLOAK_HOST", "https://auth.rareqc.example")
+	t.Setenv("PORTAL_HOST", "https://registre.rareqc.example")
+	t.Setenv("PARTICIPANT_PORTAL_HOSTS", "https://portail.rareqc.example")
+	t.Setenv("COOKIE_SECURE", "true")
+}
+
+func TestLoadConfigProductionRejectsInsecureTransport(t *testing.T) {
+	cases := []struct {
+		name  string
+		key   string
+		value string
+		want  string
+	}{
+		{"cookie not secure", "COOKIE_SECURE", "false", "COOKIE_SECURE"},
+		{"short session secret", "SESSION_SECRET", "short-but-not-the-dev-one", "SESSION_SECRET must be at least"},
+		{"keycloak over http", "KEYCLOAK_HOST", "http://auth.rareqc.example", "KEYCLOAK_HOST"},
+		{"portal over http", "PORTAL_HOST", "http://registre.rareqc.example", "PORTAL_HOST"},
+		{"participant portal over http", "PARTICIPANT_PORTAL_HOSTS", "https://a.example,http://b.example", "PARTICIPANT_PORTAL_HOSTS"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			setProductionEnv(t)
+			t.Setenv(tc.key, tc.value)
+			_, err := LoadConfig(true)
+			if err == nil {
+				t.Fatalf("LoadConfig(true) with %s=%q should fail", tc.key, tc.value)
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("error should mention %q, got: %v", tc.want, err)
+			}
+		})
+	}
+}
+
+func TestLoadConfigDevAcceptsInsecureTransport(t *testing.T) {
+	clearAuthEnv(t)
+	t.Setenv("COOKIE_SECURE", "false")
+	if _, err := LoadConfig(false); err != nil {
+		t.Fatalf("dev mode must keep working over http: %v", err)
+	}
+}
+
+func TestBrowserOrigins(t *testing.T) {
+	clearAuthEnv(t)
+	t.Setenv("PORTAL_HOST", "http://localhost:5173/")
+	t.Setenv("PARTICIPANT_PORTAL_HOSTS", "http://localhost:5174, http://localhost:3002/")
+	cfg, err := LoadConfig(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3002"}
+	if got := cfg.BrowserOrigins(); !reflect.DeepEqual(got, want) {
+		t.Errorf("BrowserOrigins() = %v, want %v", got, want)
+	}
+}
+
+func TestLoadConfigProductionAcceptsRealSecrets(t *testing.T) {
+	setProductionEnv(t)
 
 	if _, err := LoadConfig(true); err != nil {
 		t.Fatalf("LoadConfig(true) with real secrets should pass: %v", err)

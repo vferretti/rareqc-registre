@@ -49,7 +49,7 @@ func ResolveIDsHandler(participantRepo repository.ParticipantDAO, extIDRepo repo
 				}
 				exists, err := participantRepo.Exists(id)
 				if err != nil {
-					handleInternalError(c, "Failed to resolve IDs")
+					handleInternalError(c, err, "Failed to resolve IDs")
 					return
 				}
 				if exists && !seen[id] {
@@ -110,7 +110,7 @@ func ListParticipantsHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
 
 		participants, total, totalPages, err := repo.List(params)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch participants")
+			handleInternalError(c, err, "Failed to fetch participants")
 			return
 		}
 
@@ -149,7 +149,7 @@ func GetParticipantHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
 				handleNotFound(c, "Participant")
 				return
 			}
-			handleInternalError(c, "Failed to fetch participant")
+			handleInternalError(c, err, "Failed to fetch participant")
 			return
 		}
 		c.JSON(http.StatusOK, participant)
@@ -183,7 +183,7 @@ func UpdateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 				handleNotFound(c, "Participant")
 				return
 			}
-			handleInternalError(c, "Failed to fetch participant")
+			handleInternalError(c, err, "Failed to fetch participant")
 			return
 		}
 
@@ -273,12 +273,12 @@ func UpdateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 		})
 
 		if err != nil {
-			handleInternalError(c, "Failed to update participant")
+			handleInternalError(c, err, "Failed to update participant")
 			return
 		}
 
 		if err := participantRepo.Reload(&participant); err != nil {
-			handleInternalError(c, "Failed to reload participant")
+			handleInternalError(c, err, "Failed to reload participant")
 			return
 		}
 		c.JSON(http.StatusOK, participant)
@@ -418,12 +418,12 @@ func CreateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 		})
 
 		if err != nil {
-			handleInternalError(c, "Failed to create participant")
+			handleInternalError(c, err, "Failed to create participant")
 			return
 		}
 
 		if err := participantRepo.Reload(&participant); err != nil {
-			handleInternalError(c, "Failed to reload participant")
+			handleInternalError(c, err, "Failed to reload participant")
 			return
 		}
 		c.JSON(http.StatusCreated, participant)
@@ -455,7 +455,7 @@ func DeleteParticipantHandler(participantRepo repository.ParticipantDAO) gin.Han
 		}
 
 		if err := participantRepo.Delete(id); err != nil {
-			handleInternalError(c, "Failed to delete participant")
+			handleInternalError(c, err, "Failed to delete participant")
 			return
 		}
 

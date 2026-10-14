@@ -20,7 +20,7 @@ func EnumsHandler(codeTableRepo repository.CodeTableDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		data, err := codeTableRepo.LoadAllEnums()
 		if err != nil {
-			handleInternalError(c, "Failed to load enums")
+			handleInternalError(c, err, "Failed to load enums")
 			return
 		}
 		c.JSON(http.StatusOK, data)

@@ -50,7 +50,7 @@ func ListParticipantConsentsHandler(consentRepo repository.ConsentDAO) gin.Handl
 
 		consents, err := consentRepo.ListByParticipant(participantID)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch consents")
+			handleInternalError(c, err, "Failed to fetch consents")
 			return
 		}
 
@@ -80,7 +80,7 @@ func ListConsentClausesHandler(consentRepo repository.ConsentDAO) gin.HandlerFun
 		}
 		clauses, err := consentRepo.ListClauses(templateID)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch clauses")
+			handleInternalError(c, err, "Failed to fetch clauses")
 			return
 		}
 		c.JSON(http.StatusOK, clauses)
@@ -101,13 +101,13 @@ func ListConsentTemplatesHandler(consentRepo repository.ConsentDAO) gin.HandlerF
 	return func(c *gin.Context) {
 		templates, err := consentRepo.ListConsentTemplates()
 		if err != nil {
-			handleInternalError(c, "Failed to fetch templates")
+			handleInternalError(c, err, "Failed to fetch templates")
 			return
 		}
 		// Batch load which templates have consents (one query instead of N)
 		withConsents, err := consentRepo.TemplateIDsWithConsents()
 		if err != nil {
-			handleInternalError(c, "Failed to fetch consent status")
+			handleInternalError(c, err, "Failed to fetch consent status")
 			return
 		}
 		results := make([]ConsentTemplateResponse, len(templates))
@@ -179,7 +179,7 @@ func CreateParticipantConsentHandler(consentRepo repository.ConsentDAO, contactR
 		}
 		typeExists, err := consentRepo.ExistsByClauseType(participantID, clauseType)
 		if err != nil {
-			handleInternalError(c, "Failed to check existing consents")
+			handleInternalError(c, err, "Failed to check existing consents")
 			return
 		}
 		if typeExists {
@@ -212,7 +212,7 @@ func CreateParticipantConsentHandler(consentRepo repository.ConsentDAO, contactR
 			return activityRepo.Record(tx, "consent_added", &participantID, author, &details)
 		})
 		if err != nil {
-			handleInternalError(c, "Failed to create consent")
+			handleInternalError(c, err, "Failed to create consent")
 			return
 		}
 
@@ -343,7 +343,7 @@ func UpdateConsentHandler(consentRepo repository.ConsentDAO, contactRepo reposit
 			return nil
 		})
 		if err != nil {
-			handleInternalError(c, "Failed to update consent")
+			handleInternalError(c, err, "Failed to update consent")
 			return
 		}
 
@@ -370,11 +370,15 @@ type CreateConsentTemplateClause struct {
 // @Param       file    formData file   true  "PDF file"
 // @Success     201 {object} types.Document
 // @Failure     400 {object} types.ErrorResponse
+// @Failure     413 {object} types.ErrorResponse
 // @Failure     500 {object} types.ErrorResponse
 // @Security BearerAuth
 // @Router      /consent-templates [post]
 func CreateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !parseUploadForm(c) {
+			return
+		}
 		name := c.PostForm("name")
 		clausesJSON := c.PostForm("clauses")
 
@@ -408,14 +412,14 @@ func CreateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			handleInternalError(c, "Failed to read file")
+			handleInternalError(c, err, "Failed to read file")
 			return
 		}
 		defer file.Close()
 
 		fileBytes, err := io.ReadAll(file)
 		if err != nil {
-			handleInternalError(c, "Failed to read file")
+			handleInternalError(c, err, "Failed to read file")
 			return
 		}
 
@@ -429,7 +433,7 @@ func CreateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 
 		doc := types.Document{
 			Name:     name,
-			FileName: fileHeader.Filename,
+			FileName: filepath.Base(fileHeader.Filename),
 			MimeType: mimeType,
 		}
 
@@ -443,7 +447,7 @@ func CreateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		}
 
 		if err := consentRepo.CreateTemplate(&doc, fileBytes, clauses); err != nil {
-			handleInternalError(c, "Failed to create template")
+			handleInternalError(c, err, "Failed to create template")
 			return
 		}
 
@@ -473,7 +477,7 @@ func DeleteConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 
 		hasConsents, err := consentRepo.HasConsentsForTemplate(id)
 		if err != nil {
-			handleInternalError(c, "Failed to check consents")
+			handleInternalError(c, err, "Failed to check consents")
 			return
 		}
 		if hasConsents {
@@ -482,7 +486,7 @@ func DeleteConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		}
 
 		if err := consentRepo.DeleteTemplate(id); err != nil {
-			handleInternalError(c, "Failed to delete template")
+			handleInternalError(c, err, "Failed to delete template")
 			return
 		}
 
@@ -503,12 +507,16 @@ func DeleteConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 // @Param       file    formData file   false "PDF file (optional)"
 // @Success     200 {object} ConsentTemplateUpdateResponse
 // @Failure     400 {object} types.ErrorResponse
+// @Failure     413 {object} types.ErrorResponse
 // @Failure     409 {object} types.ErrorResponse
 // @Failure     500 {object} types.ErrorResponse
 // @Security BearerAuth
 // @Router      /consent-templates/{id} [put]
 func UpdateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !parseUploadForm(c) {
+			return
+		}
 		var id int
 		if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
 			handleBadRequest(c, "Invalid template ID")
@@ -517,7 +525,7 @@ func UpdateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 
 		hasConsents, err := consentRepo.HasConsentsForTemplate(id)
 		if err != nil {
-			handleInternalError(c, "Failed to check consents")
+			handleInternalError(c, err, "Failed to check consents")
 			return
 		}
 		if hasConsents {
@@ -553,13 +561,13 @@ func UpdateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 			}
 			file, err := fileHeader.Open()
 			if err != nil {
-				handleInternalError(c, "Failed to read file")
+				handleInternalError(c, err, "Failed to read file")
 				return
 			}
 			defer file.Close()
 			fileBytes, err = io.ReadAll(file)
 			if err != nil {
-				handleInternalError(c, "Failed to read file")
+				handleInternalError(c, err, "Failed to read file")
 				return
 			}
 		}
@@ -574,7 +582,7 @@ func UpdateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		}
 
 		if err := consentRepo.UpdateTemplate(id, name, fileBytes, clauses); err != nil {
-			handleInternalError(c, "Failed to update template")
+			handleInternalError(c, err, "Failed to update template")
 			return
 		}
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,15 @@ func handleBadRequest(c *gin.Context, msg string) {
 	handleError(c, http.StatusBadRequest, msg)
 }
 
-func handleInternalError(c *gin.Context, msg string) {
+// handleInternalError answers a generic 500 and logs the underlying error
+// with the request id, so the cause is diagnosable without ever reaching
+// the client.
+func handleInternalError(c *gin.Context, err error, msg string) {
+	slog.Error(msg,
+		"error", err,
+		"request_id", RequestID(c),
+		"method", c.Request.Method,
+		"path", c.FullPath())
 	handleError(c, http.StatusInternalServerError, msg)
 }
 

@@ -30,7 +30,11 @@ type Config struct {
 	// CORSAllowedOrigins is the browser origin allowlist
 	// (CORS_ALLOWED_ORIGINS, comma-separated). Dev default: "*".
 	CORSAllowedOrigins []string
-	DB                 DB
+	// TrustedProxies lists the proxies (IPs or CIDRs, TRUSTED_PROXIES,
+	// comma-separated) allowed to set X-Forwarded-* headers. Empty = none:
+	// the client IP is then always the TCP peer.
+	TrustedProxies []string
+	DB             DB
 }
 
 const devDBPassword = "rareqc"
@@ -43,11 +47,12 @@ func Load() (Config, error) {
 		Production:         os.Getenv("GIN_MODE") == "release",
 		Port:               getEnvOrDefault("PORT", "8080"),
 		CORSAllowedOrigins: SplitAndTrim(getEnvOrDefault("CORS_ALLOWED_ORIGINS", "*")),
+		TrustedProxies:     SplitAndTrim(os.Getenv("TRUSTED_PROXIES")),
 		DB: DB{
 			Host: getEnvOrDefault("POSTGRES_HOST", "localhost"),
 			// 5440 = port hôte du postgres de la plateforme rareqc-infra,
 			// pour que `go run ./cmd/api/` fonctionne sans .env en dev.
-			Port: getEnvOrDefault("POSTGRES_PORT", "5440"),
+			Port:     getEnvOrDefault("POSTGRES_PORT", "5440"),
 			User:     getEnvOrDefault("POSTGRES_USER", "rareqc"),
 			Password: getEnvOrDefault("POSTGRES_PASSWORD", devDBPassword),
 			Name:     getEnvOrDefault("POSTGRES_DB", "rareqc_registre"),

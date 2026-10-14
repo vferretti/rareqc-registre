@@ -186,9 +186,10 @@ Tout est documenté dans [`backend/.env.example`](backend/.env.example) — les 
 
 | Variable | Défaut | Description |
 |---|---|---|
-| `GIN_MODE` | *(vide)* | `release` = mode production : **refuse de démarrer** si un secret/réglage est resté à sa valeur de dev ; logs JSON |
+| `GIN_MODE` | *(vide)* | `release` = mode production : **refuse de démarrer** si un secret/réglage est resté à sa valeur de dev ; logs JSON ; Swagger UI désactivé |
 | `PORT` | `8080` | Port d'écoute HTTP |
 | `CORS_ALLOWED_ORIGINS` | `*` | Origines CORS (séparées par des virgules) — `*` interdit en release |
+| `TRUSTED_PROXIES` | *(vide)* | IPs/CIDR des proxys autorisés à poser `X-Forwarded-*` (ex. `172.16.0.0/12`) — vide = aucun, l'IP cliente est alors le pair TCP |
 | `POSTGRES_HOST` / `POSTGRES_PORT` | `localhost` / `5440` | PostgreSQL (plateforme rareqc-infra) |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | `rareqc` / `rareqc` / `rareqc_registre` | Accès BD |
 | `POSTGRES_SSLMODE` | `disable` | `sslmode` du driver — valeur explicite exigée en release |
@@ -196,9 +197,9 @@ Tout est documenté dans [`backend/.env.example`](backend/.env.example) — les 
 | `KEYCLOAK_REALM` / `KEYCLOAK_CLIENT` / `KEYCLOAK_CLIENT_SECRET` | `rareqc` / `registre-admin-bff` / *(dev)* | Client OIDC du portail admin |
 | `KEYCLOAK_PARTICIPANT_CLIENT` / `KEYCLOAK_PARTICIPANT_CLIENT_SECRET` | `portail-participant-bff` / *(dev)* | Client OIDC du portail participant |
 | `PARTICIPANT_PORTAL_HOSTS` | `http://localhost:5174,http://localhost:3002` | Origines du portail participant |
-| `SESSION_SECRET` | *(dev)* | Signature des cookies de session |
-| `PORTAL_HOST` | `http://localhost:5173` | Origine de secours du flux OIDC |
-| `COOKIE_SECURE` | `false` | `true` hors dev (exige HTTPS) |
+| `SESSION_SECRET` | *(dev)* | Signature des cookies de session — 32 caractères minimum en release |
+| `PORTAL_HOST` | `http://localhost:5173` | Origine du portail admin (redirect de secours OIDC, garde CSRF) — `https://` exigé en release |
+| `COOKIE_SECURE` | `false` | Flag `Secure` des cookies — **`true` exigé en release** (comme `https://` sur `KEYCLOAK_HOST`, `PORTAL_HOST` et `PARTICIPANT_PORTAL_HOSTS`) |
 | `STORAGE_TYPE` | `database` | Stockage des documents (`database` ou `s3`) |
 
 ## Stockage des documents

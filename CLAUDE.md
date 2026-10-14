@@ -159,7 +159,17 @@ Web application for administrators of a Quebec rare disease patient registry. Ma
 - **Two portals, one API (A6)**: the OIDC client is selected per request origin — origins listed in `PARTICIPANT_PORTAL_HOSTS` (default `http://localhost:5174,http://localhost:3002`) use `KEYCLOAK_PARTICIPANT_CLIENT`/`KEYCLOAK_PARTICIPANT_CLIENT_SECRET` (`portail-participant-bff`); every other origin uses the admin client. Test user: `participant-test` (role `participant`).
 - **Admin users listing**: `GET /admin-users` proxies the Keycloak admin API using the `registre-admin-bff` **service account** (client_credentials), which holds only the realm-management `view-users` + `view-realm` roles (read-only — reading a role and its holders requires both).
 - **Frontend**: `AuthProvider` (`src/contexts/auth-context.tsx`) loads `/api/auth/me` at startup; `RequireAuth` guards app routes; axios 401 interceptor returns to the landing page; no OIDC library needed.
+- **Release guards** (`GIN_MODE=release`): besides the dev secrets, the server refuses to start unless `COOKIE_SECURE=true`, `SESSION_SECRET` is ≥ 32 chars and `KEYCLOAK_HOST`/`PORTAL_HOST`/`PARTICIPANT_PORTAL_HOSTS` are `https://`.
 - **Gotchas**: nginx needs enlarged proxy buffers for the session cookies (see `frontend/nginx.conf`); Keycloak runs with `KC_HOSTNAME` + `KC_HOSTNAME_BACKCHANNEL_DYNAMIC` for the dev split-horizon.
+
+## HTTP hardening (`internal/server/middlewares.go`)
+- Engine-level: `requestID` (`X-Request-ID`, echoed in every log line), `requestLogger`, `recovery` (generic 500, stack in slog), `securityHeaders` (nosniff, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, HSTS in release). `SetTrustedProxies` comes from `TRUSTED_PROXIES` (default: none).
+- `/api` group: `bodyLimit` (1 MB JSON, 11 MB multipart — cuts the body before any handler reads it; `MaxMultipartMemory` = 10 MB) and `csrfGuard` — POST/PUT/DELETE authenticated by cookie must carry an `Origin` (or `Referer`) matching `PORTAL_HOST` or `PARTICIPANT_PORTAL_HOSTS`; `Authorization: Bearer` calls are exempt. Swagger UI from `localhost:8080` therefore needs a Bearer token for mutations.
+- Swagger UI (`/swagger`) is registered only outside release.
+- `http.Server` timeouts: header 10 s, read 60 s, write 120 s, idle 120 s, 64 KB headers.
+- Errors: `handleInternalError(c, err, msg)` logs `err` with the request id and returns the generic `msg`; never send `err.Error()` to the client.
+- GORM logger: `ParameterizedQueries` (no bound values in logs), warnings only, 500 ms slow threshold.
+- Seed script refuses to run with `GIN_MODE=release` unless `SEED_ALLOW_DESTRUCTIVE=yes`.
 
 ## TODO — Production readiness
 

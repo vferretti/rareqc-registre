@@ -36,7 +36,7 @@ func ReportsSummaryHandler(repo repository.ReportsDAO) gin.HandlerFunc {
 
 		summary, err := repo.GetSummary(reportDate)
 		if err != nil {
-			handleInternalError(c, "Failed to compute summary")
+			handleInternalError(c, err, "Failed to compute summary")
 			return
 		}
 		c.JSON(http.StatusOK, summary)

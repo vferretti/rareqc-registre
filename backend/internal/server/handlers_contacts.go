@@ -38,7 +38,7 @@ func AddContactHandler(participantRepo repository.ParticipantDAO, contactRepo re
 				handleNotFound(c, "Participant")
 				return
 			}
-			handleInternalError(c, "Failed to fetch participant")
+			handleInternalError(c, err, "Failed to fetch participant")
 			return
 		}
 
@@ -112,12 +112,12 @@ func AddContactHandler(participantRepo repository.ParticipantDAO, contactRepo re
 		})
 
 		if err != nil {
-			handleInternalError(c, "Failed to create contact")
+			handleInternalError(c, err, "Failed to create contact")
 			return
 		}
 
 		if err := participantRepo.Reload(&participant); err != nil {
-			handleInternalError(c, "Failed to reload participant")
+			handleInternalError(c, err, "Failed to reload participant")
 			return
 		}
 		c.JSON(http.StatusCreated, participant)
@@ -151,7 +151,7 @@ func UpdateContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 				handleNotFound(c, "Contact")
 				return
 			}
-			handleInternalError(c, "Failed to fetch contact")
+			handleInternalError(c, err, "Failed to fetch contact")
 			return
 		}
 
@@ -211,7 +211,7 @@ func UpdateContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 		})
 
 		if err != nil {
-			handleInternalError(c, "Failed to update contact")
+			handleInternalError(c, err, "Failed to update contact")
 			return
 		}
 
@@ -244,7 +244,7 @@ func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 				handleNotFound(c, "Contact")
 				return
 			}
-			handleInternalError(c, "Failed to fetch contact")
+			handleInternalError(c, err, "Failed to fetch contact")
 			return
 		}
 
@@ -255,7 +255,7 @@ func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 
 		referenced, err := contactRepo.IsReferencedByConsent(contact.ID)
 		if err != nil {
-			handleInternalError(c, "Failed to check consent references")
+			handleInternalError(c, err, "Failed to check consent references")
 			return
 		}
 		if referenced {
@@ -265,7 +265,7 @@ func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 
 		commReferenced, err := contactRepo.IsReferencedByCommunication(contact.ID)
 		if err != nil {
-			handleInternalError(c, "Failed to check communication references")
+			handleInternalError(c, err, "Failed to check communication references")
 			return
 		}
 		if commReferenced {
@@ -296,7 +296,7 @@ func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 		})
 
 		if err != nil {
-			handleInternalError(c, "Failed to delete contact")
+			handleInternalError(c, err, "Failed to delete contact")
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"message": "Contact deleted"})

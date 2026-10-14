@@ -17,6 +17,7 @@ func requestLogger() gin.HandlerFunc {
 
 		status := c.Writer.Status()
 		attrs := []any{
+			"request_id", RequestID(c),
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
 			"status", status,

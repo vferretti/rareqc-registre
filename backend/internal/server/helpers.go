@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +12,23 @@ import (
 
 	"registre-admin/internal/types"
 )
+
+// parseUploadForm parses a multipart upload up front so a body cut off by
+// the bodyLimit middleware is reported as "too large" instead of surfacing
+// later as missing form fields. Returns false after writing the response.
+func parseUploadForm(c *gin.Context) bool {
+	err := c.Request.ParseMultipartForm(maxUploadBytes)
+	if err == nil {
+		return true
+	}
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		handleError(c, http.StatusRequestEntityTooLarge, "File size exceeds 10 MB limit")
+		return false
+	}
+	handleBadRequest(c, "Invalid multipart form")
+	return false
+}
 
 // parsePathID reads a numeric path parameter and rejects anything that is not
 // a strictly positive integer with a 400. Path parameters must never reach

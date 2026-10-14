@@ -45,7 +45,7 @@ func ListActivityLogsHandler(repo repository.ActivityDAO) gin.HandlerFunc {
 
 		responses, total, totalPages, err := repo.List(p)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch activity logs")
+			handleInternalError(c, err, "Failed to fetch activity logs")
 			return
 		}
 
@@ -86,7 +86,7 @@ func ListParticipantActivityLogsHandler(participantRepo repository.ParticipantDA
 
 		exists, err := participantRepo.Exists(participantID)
 		if err != nil {
-			handleInternalError(c, "Failed to check participant")
+			handleInternalError(c, err, "Failed to check participant")
 			return
 		}
 		if !exists {
@@ -103,7 +103,7 @@ func ListParticipantActivityLogsHandler(participantRepo repository.ParticipantDA
 
 		responses, total, totalPages, err := activityRepo.List(p)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch activity logs")
+			handleInternalError(c, err, "Failed to fetch activity logs")
 			return
 		}
 

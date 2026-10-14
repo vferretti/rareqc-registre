@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -27,11 +26,15 @@ import (
 // @Param       file      formData file   true  "File to upload"
 // @Success     201 {object} types.Document
 // @Failure     400 {object} types.ErrorResponse
+// @Failure     413 {object} types.ErrorResponse
 // @Failure     500 {object} types.ErrorResponse
 // @Security BearerAuth
 // @Router      /documents [post]
 func UploadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !parseUploadForm(c) {
+			return
+		}
 		name := c.PostForm("name")
 		typeCode := c.PostForm("type_code")
 
@@ -54,14 +57,14 @@ func UploadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			handleInternalError(c, "Failed to read file")
+			handleInternalError(c, err, "Failed to read file")
 			return
 		}
 		defer file.Close()
 
 		fileBytes, err := io.ReadAll(file)
 		if err != nil {
-			handleInternalError(c, "Failed to read file")
+			handleInternalError(c, err, "Failed to read file")
 			return
 		}
 
@@ -89,7 +92,7 @@ func UploadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 		}
 
 		if err := docRepo.Create(&doc, fileBytes); err != nil {
-			handleInternalError(c, "Failed to create document")
+			handleInternalError(c, err, "Failed to create document")
 			return
 		}
 
@@ -136,8 +139,8 @@ func DownloadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 			return
 		}
 
-		safeName := strings.ReplaceAll(filepath.Base(doc.FileName), "\"", "")
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", safeName))
+		safeName := filepath.Base(doc.FileName)
+		c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": safeName}))
 		c.Data(http.StatusOK, doc.MimeType, fileBytes)
 	}
 }

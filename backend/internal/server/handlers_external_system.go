@@ -22,7 +22,7 @@ func ListExternalSystemsHandler(repo repository.ExternalSystemDAO) gin.HandlerFu
 	return func(c *gin.Context) {
 		systems, err := repo.List()
 		if err != nil {
-			handleInternalError(c, "Failed to list external systems")
+			handleInternalError(c, err, "Failed to list external systems")
 			return
 		}
 		c.JSON(http.StatusOK, systems)

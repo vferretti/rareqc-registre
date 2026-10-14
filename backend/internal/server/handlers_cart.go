@@ -37,7 +37,7 @@ func CartExportDataHandler(
 	return func(c *gin.Context) {
 		items, err := cartRepo.ListItems(auth.UserSub(c))
 		if err != nil {
-			handleInternalError(c, "Failed to fetch cart")
+			handleInternalError(c, err, "Failed to fetch cart")
 			return
 		}
 		if len(items) == 0 {
@@ -56,19 +56,19 @@ func CartExportDataHandler(
 
 		participants, err := participantRepo.FindByIDs(ids)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch participants")
+			handleInternalError(c, err, "Failed to fetch participants")
 			return
 		}
 
 		consents, err := consentRepo.ListByParticipantIDs(ids)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch consents")
+			handleInternalError(c, err, "Failed to fetch consents")
 			return
 		}
 
 		extIDs, err := extIDRepo.ListByParticipantIDs(ids)
 		if err != nil {
-			handleInternalError(c, "Failed to fetch external IDs")
+			handleInternalError(c, err, "Failed to fetch external IDs")
 			return
 		}
 
@@ -116,7 +116,7 @@ func ListCartItemsHandler(repo repository.CartDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		items, err := repo.ListItems(auth.UserSub(c))
 		if err != nil {
-			handleInternalError(c, "Failed to fetch cart")
+			handleInternalError(c, err, "Failed to fetch cart")
 			return
 		}
 		c.JSON(http.StatusOK, cartListResponse{Items: items, Count: len(items)})
@@ -137,7 +137,7 @@ func CartCountHandler(repo repository.CartDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		count, err := repo.CountItems(auth.UserSub(c))
 		if err != nil {
-			handleInternalError(c, "Failed to count cart items")
+			handleInternalError(c, err, "Failed to count cart items")
 			return
 		}
 		c.JSON(http.StatusOK, cartCountResponse{Count: count})
@@ -165,7 +165,7 @@ func AddCartItemsHandler(repo repository.CartDAO) gin.HandlerFunc {
 			return
 		}
 		if err := repo.AddItems(auth.UserSub(c), req.ParticipantIDs); err != nil {
-			handleInternalError(c, "Failed to add items")
+			handleInternalError(c, err, "Failed to add items")
 			return
 		}
 		count, _ := repo.CountItems(auth.UserSub(c))
@@ -194,7 +194,7 @@ func RemoveCartItemsHandler(repo repository.CartDAO) gin.HandlerFunc {
 			return
 		}
 		if err := repo.RemoveItems(auth.UserSub(c), req.ParticipantIDs); err != nil {
-			handleInternalError(c, "Failed to remove items")
+			handleInternalError(c, err, "Failed to remove items")
 			return
 		}
 		count, _ := repo.CountItems(auth.UserSub(c))
@@ -255,7 +255,7 @@ func CreateCartCommunicationsHandler(
 
 		items, err := cartRepo.ListItems(auth.UserSub(c))
 		if err != nil {
-			handleInternalError(c, "Failed to fetch cart")
+			handleInternalError(c, err, "Failed to fetch cart")
 			return
 		}
 		if len(items) == 0 {
@@ -274,7 +274,7 @@ func CreateCartCommunicationsHandler(
 		if err := commRepo.DB().
 			Where("participant_id IN ?", participantIDs).
 			Find(&contacts).Error; err != nil {
-			handleInternalError(c, "Failed to fetch contacts")
+			handleInternalError(c, err, "Failed to fetch contacts")
 			return
 		}
 		byParticipant := make(map[int][]types.Contact, len(participantIDs))
@@ -320,7 +320,7 @@ func CreateCartCommunicationsHandler(
 			return nil
 		})
 		if err != nil {
-			handleInternalError(c, "Failed to create communications")
+			handleInternalError(c, err, "Failed to create communications")
 			return
 		}
 
@@ -357,7 +357,7 @@ func pickPrimaryContact(contacts []types.Contact) *types.Contact {
 func ClearCartHandler(repo repository.CartDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := repo.ClearCart(auth.UserSub(c)); err != nil {
-			handleInternalError(c, "Failed to clear cart")
+			handleInternalError(c, err, "Failed to clear cart")
 			return
 		}
 		c.JSON(http.StatusOK, cartMutationResponse{Success: true, Count: 0})

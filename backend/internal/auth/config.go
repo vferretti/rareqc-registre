@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -97,7 +98,51 @@ func LoadConfig(production bool) (Config, error) {
 		slog.Warn("auth is using dev-only secrets — set real values outside dev",
 			"vars", strings.Join(devSecrets, ", "))
 	}
+	if production {
+		if problems := cfg.productionProblems(); len(problems) > 0 {
+			return cfg, fmt.Errorf("refusing to start in production (GIN_MODE=release):\n  - %s",
+				strings.Join(problems, "\n  - "))
+		}
+	}
 	return cfg, nil
+}
+
+// minSessionSecretLen is the minimum SESSION_SECRET size outside dev: the
+// cookie keys are derived from it, so it must carry real entropy.
+const minSessionSecretLen = 32
+
+// productionProblems lists the transport settings that must not stay at
+// their dev values once real sessions are issued: the cookies carry the
+// Keycloak tokens, so they may only travel over HTTPS.
+func (c Config) productionProblems() []string {
+	var problems []string
+	if !c.CookieSecure {
+		problems = append(problems, "COOKIE_SECURE must be true (session cookies carry tokens)")
+	}
+	if len(c.SessionSecret) < minSessionSecretLen {
+		problems = append(problems, fmt.Sprintf("SESSION_SECRET must be at least %d characters", minSessionSecretLen))
+	}
+	for name, host := range map[string]string{"KEYCLOAK_HOST": c.KeycloakHost, "PORTAL_HOST": c.PortalHost} {
+		if !strings.HasPrefix(host, "https://") {
+			problems = append(problems, name+" must be an https:// URL")
+		}
+	}
+	for _, host := range c.ParticipantPortalHosts {
+		if !strings.HasPrefix(host, "https://") {
+			problems = append(problems, "PARTICIPANT_PORTAL_HOSTS must only list https:// origins")
+			break
+		}
+	}
+	sort.Strings(problems)
+	return problems
+}
+
+// BrowserOrigins returns every origin a browser session may legitimately
+// come from: the admin portal and the participant portals. Used by the
+// CSRF guard to validate the Origin of state-changing requests.
+func (c Config) BrowserOrigins() []string {
+	origins := []string{strings.TrimRight(c.PortalHost, "/")}
+	return append(origins, c.ParticipantPortalHosts...)
 }
 
 // splitHosts parses a comma-separated origin list, trimming whitespace and
