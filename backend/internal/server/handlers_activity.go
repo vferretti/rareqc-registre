@@ -78,9 +78,8 @@ func ListActivityLogsHandler(repo repository.ActivityDAO) gin.HandlerFunc {
 // @Router      /participants/{id}/activity-logs [get]
 func ListParticipantActivityLogsHandler(participantRepo repository.ParticipantDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		participantID, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			handleBadRequest(c, "Invalid participant ID")
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
 			return
 		}
 

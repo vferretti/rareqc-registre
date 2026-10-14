@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -85,9 +84,8 @@ func CreateExternalSystemHandler(repo repository.ExternalSystemDAO) gin.HandlerF
 // @Router      /external-systems/{id} [put]
 func UpdateExternalSystemHandler(repo repository.ExternalSystemDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var id int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
-			handleBadRequest(c, "Invalid ID")
+		id, ok := parsePathID(c, "id", "external system")
+		if !ok {
 			return
 		}
 
@@ -122,9 +120,8 @@ func UpdateExternalSystemHandler(repo repository.ExternalSystemDAO) gin.HandlerF
 // @Router      /external-systems/{id} [delete]
 func DeleteExternalSystemHandler(repo repository.ExternalSystemDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var id int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
-			handleBadRequest(c, "Invalid ID")
+		id, ok := parsePathID(c, "id", "external system")
+		if !ok {
 			return
 		}
 

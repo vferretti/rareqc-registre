@@ -7,6 +7,7 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -42,9 +43,8 @@ type ConsentTemplateUpdateResponse struct {
 // @Router      /participants/{id}/consents [get]
 func ListParticipantConsentsHandler(consentRepo repository.ConsentDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var participantID int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &participantID); err != nil {
-			handleBadRequest(c, "Invalid participant ID")
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
 			return
 		}
 
@@ -73,8 +73,7 @@ func ListConsentClausesHandler(consentRepo repository.ConsentDAO) gin.HandlerFun
 	return func(c *gin.Context) {
 		var templateID *int
 		if tid := c.Query("template_document_id"); tid != "" {
-			var id int
-			if _, err := fmt.Sscanf(tid, "%d", &id); err == nil {
+			if id, err := strconv.Atoi(tid); err == nil && id > 0 {
 				templateID = &id
 			}
 		}
@@ -146,9 +145,8 @@ type CreateConsentRequest struct {
 // @Router      /participants/{id}/consents [post]
 func CreateParticipantConsentHandler(consentRepo repository.ConsentDAO, contactRepo repository.ContactDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var participantID int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &participantID); err != nil {
-			handleBadRequest(c, "Invalid participant ID")
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
 			return
 		}
 
@@ -247,9 +245,8 @@ type UpdateConsentRequest struct {
 // @Router      /consents/{consentId} [put]
 func UpdateConsentHandler(consentRepo repository.ConsentDAO, contactRepo repository.ContactDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var consentID int
-		if _, err := fmt.Sscanf(c.Param("consentId"), "%d", &consentID); err != nil {
-			handleBadRequest(c, "Invalid consent ID")
+		consentID, ok := parsePathID(c, "consentId", "consent")
+		if !ok {
 			return
 		}
 
@@ -469,9 +466,8 @@ func CreateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 // @Router      /consent-templates/{id} [delete]
 func DeleteConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var id int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
-			handleBadRequest(c, "Invalid template ID")
+		id, ok := parsePathID(c, "id", "template")
+		if !ok {
 			return
 		}
 
@@ -517,9 +513,8 @@ func UpdateConsentTemplateHandler(consentRepo repository.ConsentDAO) gin.Handler
 		if !parseUploadForm(c) {
 			return
 		}
-		var id int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &id); err != nil {
-			handleBadRequest(c, "Invalid template ID")
+		id, ok := parsePathID(c, "id", "template")
+		if !ok {
 			return
 		}
 

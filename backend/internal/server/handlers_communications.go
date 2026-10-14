@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -46,9 +45,8 @@ type UpdateCommunicationRequest struct {
 // @Router      /participants/{id}/communications [get]
 func ListParticipantCommunicationsHandler(commRepo repository.CommunicationDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var participantID int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &participantID); err != nil {
-			handleBadRequest(c, "Invalid participant ID")
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
 			return
 		}
 
@@ -78,9 +76,8 @@ func ListParticipantCommunicationsHandler(commRepo repository.CommunicationDAO) 
 // @Router      /participants/{id}/communications [post]
 func CreateParticipantCommunicationHandler(commRepo repository.CommunicationDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var participantID int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &participantID); err != nil {
-			handleBadRequest(c, "Invalid participant ID")
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
 			return
 		}
 
@@ -134,9 +131,8 @@ func CreateParticipantCommunicationHandler(commRepo repository.CommunicationDAO)
 // @Router      /communications/{communicationId} [put]
 func UpdateCommunicationHandler(commRepo repository.CommunicationDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var communicationID int
-		if _, err := fmt.Sscanf(c.Param("communicationId"), "%d", &communicationID); err != nil {
-			handleBadRequest(c, "Invalid communication ID")
+		communicationID, ok := parsePathID(c, "communicationId", "communication")
+		if !ok {
 			return
 		}
 
@@ -189,9 +185,8 @@ func UpdateCommunicationHandler(commRepo repository.CommunicationDAO) gin.Handle
 // @Router      /communications/{communicationId} [delete]
 func DeleteCommunicationHandler(commRepo repository.CommunicationDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var communicationID int
-		if _, err := fmt.Sscanf(c.Param("communicationId"), "%d", &communicationID); err != nil {
-			handleBadRequest(c, "Invalid communication ID")
+		communicationID, ok := parsePathID(c, "communicationId", "communication")
+		if !ok {
 			return
 		}
 

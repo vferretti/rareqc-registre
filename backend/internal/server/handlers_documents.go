@@ -5,7 +5,6 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -116,9 +115,8 @@ func UploadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 // @Router      /documents/{id}/file [get]
 func DownloadDocumentHandler(docRepo repository.DocumentDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id, err := strconv.Atoi(c.Param("id"))
-		if err != nil {
-			handleBadRequest(c, "Invalid document ID")
+		id, ok := parsePathID(c, "id", "document")
+		if !ok {
 			return
 		}
 

@@ -1,7 +1,10 @@
 package server
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -164,6 +167,95 @@ func TestContactHandlersRejectNonNumericIDs(t *testing.T) {
 				}
 				if len(contacts.findCalls) != 0 {
 					t.Errorf("DAO called with %v, want no call", contacts.findCalls)
+				}
+			})
+		}
+	}
+}
+
+// TestParsePathID pins the accepted shape: strictly positive base-10
+// integers only. "12abc" used to pass through fmt.Sscanf as 12.
+func TestParsePathID(t *testing.T) {
+	cases := map[string]bool{
+		"1": true, "42": true, "007": true,
+		"0": false, "-1": false, "abc": false, "12abc": false, "": false,
+		"1.5": false, " 3": false, "1e3": false, "true": false, "1 OR 1=1": false,
+	}
+	for in, want := range cases {
+		t.Run(in, func(t *testing.T) {
+			w := performRequest(func(c *gin.Context) {
+				if id, ok := parsePathID(c, "id", "thing"); ok {
+					c.JSON(http.StatusOK, gin.H{"id": id})
+				}
+			}, http.MethodGet, "/x", "", gin.Param{Key: "id", Value: in})
+			if got := w.Code == http.StatusOK; got != want {
+				t.Errorf("parsePathID(%q) accepted = %v, want %v (status %d)", in, got, want, w.Code)
+			}
+		})
+	}
+}
+
+// performMultipart sends a well-formed (empty) multipart form so handlers
+// that parse the upload before the id get past parseUploadForm.
+func performMultipart(handler gin.HandlerFunc, method, path string, params ...gin.Param) *httptest.ResponseRecorder {
+	gin.SetMode(gin.TestMode)
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	_ = mw.WriteField("name", "x")
+	_ = mw.Close()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(method, path, &buf)
+	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
+	c.Params = params
+	handler(c)
+	c.Writer.WriteHeaderNow()
+	return w
+}
+
+// TestEveryIDHandlerRejectsInvalidIDs runs each handler that takes a path
+// id with nil DAOs: a malformed id must produce a 400 before any DAO call
+// (a nil interface method call would panic and fail the test).
+func TestEveryIDHandlerRejectsInvalidIDs(t *testing.T) {
+	handlers := []struct {
+		name      string
+		param     string
+		method    string
+		handler   gin.HandlerFunc
+		multipart bool // handlers parsing an upload form before the id
+	}{
+		{"GetParticipant", "id", http.MethodGet, GetParticipantHandler(nil), false},
+		{"UpdateParticipant", "id", http.MethodPut, UpdateParticipantHandler(nil, nil, nil), false},
+		{"DeleteParticipant", "id", http.MethodDelete, DeleteParticipantHandler(nil), false},
+		{"AddContact", "id", http.MethodPost, AddContactHandler(nil, nil, nil), false},
+		{"UpdateContact", "contactId", http.MethodPut, UpdateContactHandler(nil, nil), false},
+		{"DeleteContact", "contactId", http.MethodDelete, DeleteContactHandler(nil, nil), false},
+		{"ListParticipantActivityLogs", "id", http.MethodGet, ListParticipantActivityLogsHandler(nil, nil), false},
+		{"ListParticipantExternalIDs", "id", http.MethodGet, ListParticipantExternalIDsHandler(nil), false},
+		{"DownloadDocument", "id", http.MethodGet, DownloadDocumentHandler(nil), false},
+		{"UpdateExternalSystem", "id", http.MethodPut, UpdateExternalSystemHandler(nil), false},
+		{"DeleteExternalSystem", "id", http.MethodDelete, DeleteExternalSystemHandler(nil), false},
+		{"ListParticipantConsents", "id", http.MethodGet, ListParticipantConsentsHandler(nil), false},
+		{"CreateParticipantConsent", "id", http.MethodPost, CreateParticipantConsentHandler(nil, nil, nil), false},
+		{"UpdateConsent", "consentId", http.MethodPut, UpdateConsentHandler(nil, nil, nil), false},
+		{"DeleteConsentTemplate", "id", http.MethodDelete, DeleteConsentTemplateHandler(nil), false},
+		{"UpdateConsentTemplate", "id", http.MethodPut, UpdateConsentTemplateHandler(nil), true},
+		{"ListParticipantCommunications", "id", http.MethodGet, ListParticipantCommunicationsHandler(nil), false},
+		{"CreateParticipantCommunication", "id", http.MethodPost, CreateParticipantCommunicationHandler(nil), false},
+		{"UpdateCommunication", "communicationId", http.MethodPut, UpdateCommunicationHandler(nil), false},
+		{"DeleteCommunication", "communicationId", http.MethodDelete, DeleteCommunicationHandler(nil), false},
+	}
+	for _, h := range handlers {
+		for _, id := range []string{"abc", "12abc", "0", "-1", "1 OR 1=1"} {
+			t.Run(h.name+"/"+id, func(t *testing.T) {
+				var w *httptest.ResponseRecorder
+				if h.multipart {
+					w = performMultipart(h.handler, h.method, "/x", gin.Param{Key: h.param, Value: id})
+				} else {
+					w = performRequest(h.handler, h.method, "/x", "{}", gin.Param{Key: h.param, Value: id})
+				}
+				if w.Code != http.StatusBadRequest {
+					t.Errorf("status = %d, want 400 (body %s)", w.Code, w.Body.String())
 				}
 			})
 		}

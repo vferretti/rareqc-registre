@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -42,8 +43,8 @@ func ResolveIDsHandler(participantRepo repository.ParticipantDAO, extIDRepo repo
 			// Parse string IDs to ints, check existence
 			seen := make(map[int]bool)
 			for _, raw := range req.IDs {
-				var id int
-				if _, err := fmt.Sscanf(raw, "%d", &id); err != nil {
+				id, err := strconv.Atoi(raw)
+				if err != nil || id <= 0 {
 					notFound = append(notFound, raw)
 					continue
 				}

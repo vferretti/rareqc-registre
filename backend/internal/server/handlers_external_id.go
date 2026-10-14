@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,9 +22,8 @@ import (
 // @Router      /participants/{id}/external-ids [get]
 func ListParticipantExternalIDsHandler(extIDRepo repository.ExternalIDDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var participantID int
-		if _, err := fmt.Sscanf(c.Param("id"), "%d", &participantID); err != nil {
-			handleBadRequest(c, "Invalid participant ID")
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
 			return
 		}
 
