@@ -28,7 +28,11 @@ import (
 // @Router      /participants/{id}/contacts [post]
 func AddContactHandler(participantRepo repository.ParticipantDAO, contactRepo repository.ContactDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		participant, err := participantRepo.FindByID(c.Param("id"))
+		participantID, ok := parsePathID(c, "id", "participant")
+		if !ok {
+			return
+		}
+		participant, err := participantRepo.FindByID(participantID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				handleNotFound(c, "Participant")
@@ -137,7 +141,11 @@ func AddContactHandler(participantRepo repository.ParticipantDAO, contactRepo re
 // @Router      /contacts/{contactId} [put]
 func UpdateContactHandler(contactRepo repository.ContactDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		contact, err := contactRepo.FindByID(c.Param("contactId"))
+		contactID, ok := parsePathID(c, "contactId", "contact")
+		if !ok {
+			return
+		}
+		contact, err := contactRepo.FindByID(contactID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				handleNotFound(c, "Contact")
@@ -226,7 +234,11 @@ func UpdateContactHandler(contactRepo repository.ContactDAO, activityRepo reposi
 // @Router      /contacts/{contactId} [delete]
 func DeleteContactHandler(contactRepo repository.ContactDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		contact, err := contactRepo.FindByID(c.Param("contactId"))
+		contactID, ok := parsePathID(c, "contactId", "contact")
+		if !ok {
+			return
+		}
+		contact, err := contactRepo.FindByID(contactID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				handleNotFound(c, "Contact")

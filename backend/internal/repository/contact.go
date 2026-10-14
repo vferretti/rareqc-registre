@@ -8,7 +8,7 @@ import (
 // ContactDAO defines the interface for contact data access.
 type ContactDAO interface {
 	Transaction(fn func(tx *gorm.DB) error) error
-	FindByID(id string) (types.Contact, error)
+	FindByID(id int) (types.Contact, error)
 	Create(tx *gorm.DB, c *types.Contact) error
 	Save(tx *gorm.DB, c *types.Contact) error
 	Delete(tx *gorm.DB, c *types.Contact) error
@@ -35,9 +35,9 @@ func (r *ContactRepository) Transaction(fn func(tx *gorm.DB) error) error {
 }
 
 // FindByID returns a contact by ID, or an error if not found.
-func (r *ContactRepository) FindByID(id string) (types.Contact, error) {
+func (r *ContactRepository) FindByID(id int) (types.Contact, error) {
 	var c types.Contact
-	err := r.db.First(&c, id).Error
+	err := r.db.First(&c, "id = ?", id).Error
 	return c, err
 }
 

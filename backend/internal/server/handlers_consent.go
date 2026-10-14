@@ -7,7 +7,6 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -161,7 +160,7 @@ func CreateParticipantConsentHandler(consentRepo repository.ConsentDAO, contactR
 
 		// Validate signer belongs to this participant
 		if req.SignedByID != nil {
-			signer, err := contactRepo.FindByID(strconv.Itoa(*req.SignedByID))
+			signer, err := contactRepo.FindByID(*req.SignedByID)
 			if err != nil {
 				handleBadRequest(c, "Invalid signed_by_id: contact not found")
 				return
@@ -268,7 +267,7 @@ func UpdateConsentHandler(consentRepo repository.ConsentDAO, contactRepo reposit
 
 		// Validate signer belongs to this participant
 		if req.SignedByID != nil {
-			signer, err := contactRepo.FindByID(strconv.Itoa(*req.SignedByID))
+			signer, err := contactRepo.FindByID(*req.SignedByID)
 			if err != nil {
 				handleBadRequest(c, "Invalid signed_by_id: contact not found")
 				return

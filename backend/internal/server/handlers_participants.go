@@ -132,13 +132,18 @@ func ListParticipantsHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
 // @Produce     json
 // @Param       id path int true "Participant ID"
 // @Success     200 {object} types.Participant
+// @Failure     400 {object} types.ErrorResponse
 // @Failure     404 {object} types.ErrorResponse
 // @Failure     500 {object} types.ErrorResponse
 // @Security BearerAuth
 // @Router      /participants/{id} [get]
 func GetParticipantHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		participant, err := repo.FindByID(c.Param("id"))
+		id, ok := parsePathID(c, "id", "participant")
+		if !ok {
+			return
+		}
+		participant, err := repo.FindByID(id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				handleNotFound(c, "Participant")
@@ -168,7 +173,11 @@ func GetParticipantHandler(repo repository.ParticipantDAO) gin.HandlerFunc {
 // @Router      /participants/{id} [put]
 func UpdateParticipantHandler(participantRepo repository.ParticipantDAO, contactRepo repository.ContactDAO, activityRepo repository.ActivityDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		participant, err := participantRepo.FindByID(c.Param("id"))
+		id, ok := parsePathID(c, "id", "participant")
+		if !ok {
+			return
+		}
+		participant, err := participantRepo.FindByID(id)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				handleNotFound(c, "Participant")
@@ -435,7 +444,10 @@ func CreateParticipantHandler(participantRepo repository.ParticipantDAO, contact
 // @Router      /participants/{id} [delete]
 func DeleteParticipantHandler(participantRepo repository.ParticipantDAO) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id")
+		id, ok := parsePathID(c, "id", "participant")
+		if !ok {
+			return
+		}
 
 		if _, err := participantRepo.FindByID(id); err != nil {
 			handleNotFound(c, "Participant")

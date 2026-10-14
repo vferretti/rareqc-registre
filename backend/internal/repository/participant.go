@@ -9,9 +9,9 @@ import (
 
 // ParticipantDAO defines the interface for participant data access.
 type ParticipantDAO interface {
-	FindByID(id string) (types.Participant, error)
+	FindByID(id int) (types.Participant, error)
 	FindByIDs(ids []int) ([]types.Participant, error)
-	Delete(id string) error
+	Delete(id int) error
 	List(params types.PaginationParams) ([]ParticipantListItem, int, int, error)
 	Create(tx *gorm.DB, p *types.Participant) error
 	Save(tx *gorm.DB, p *types.Participant) error
@@ -31,15 +31,15 @@ func NewParticipantRepository(db *gorm.DB) *ParticipantRepository {
 }
 
 // FindByID returns a participant with its contacts, or an error if not found.
-func (r *ParticipantRepository) FindByID(id string) (types.Participant, error) {
+func (r *ParticipantRepository) FindByID(id int) (types.Participant, error) {
 	var p types.Participant
-	err := r.db.Preload("Contacts").Preload("Guid").First(&p, id).Error
+	err := r.db.Preload("Contacts").Preload("Guid").First(&p, "id = ?", id).Error
 	return p, err
 }
 
 // Delete permanently removes a participant. Related data is removed by ON DELETE CASCADE.
-func (r *ParticipantRepository) Delete(id string) error {
-	return r.db.Delete(&types.Participant{}, id).Error
+func (r *ParticipantRepository) Delete(id int) error {
+	return r.db.Where("id = ?", id).Delete(&types.Participant{}).Error
 }
 
 // FindByIDs returns participants with contacts and GUIDs for a list of IDs, sorted by ID.

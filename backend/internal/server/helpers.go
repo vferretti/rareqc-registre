@@ -2,11 +2,27 @@ package server
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"registre-admin/internal/types"
 )
+
+// parsePathID reads a numeric path parameter and rejects anything that is not
+// a strictly positive integer with a 400. Path parameters must never reach
+// the DAO layer as raw strings: GORM treats a non-numeric string passed as an
+// inline condition (e.g. First(&p, id)) as raw SQL.
+func parsePathID(c *gin.Context, param, label string) (int, bool) {
+	id, err := strconv.Atoi(c.Param(param))
+	if err != nil || id <= 0 {
+		handleBadRequest(c, "Invalid "+label+" ID")
+		return 0, false
+	}
+	return id, true
+}
 
 // parseDate parses a "YYYY-MM-DD" string into a *time.Time. Returns nil for empty strings.
 func parseDate(dateStr string) (*time.Time, error) {
