@@ -37,7 +37,7 @@ func SetupRouter(db *gorm.DB, cfg config.Config, authCfg auth.Config) *gin.Engin
 
 	// Swagger UI documents the whole attack surface: dev only.
 	if !cfg.Production {
-		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		r.GET("/swagger/*any", swaggerCSP(), ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
 
 	// BFF authentication (Keycloak) — see internal/auth.

@@ -90,6 +90,16 @@ func securityHeaders(production bool) gin.HandlerFunc {
 	}
 }
 
+// swaggerCSP relaxes the API-wide policy for the Swagger UI, which runs its
+// own scripts and inline styles. Only mounted outside release, like the UI.
+func swaggerCSP() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Security-Policy",
+			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'")
+		c.Next()
+	}
+}
+
 // bodyLimit caps the request body before any handler reads it, so an
 // oversized upload is cut off instead of being spooled to disk first.
 func bodyLimit() gin.HandlerFunc {

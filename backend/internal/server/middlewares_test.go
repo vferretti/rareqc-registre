@@ -141,3 +141,23 @@ func TestRefererOrigin(t *testing.T) {
 		}
 	}
 }
+
+func TestSwaggerCSPAllowsTheUIScripts(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(securityHeaders(false))
+	r.GET("/swagger/*any", swaggerCSP(), func(c *gin.Context) { c.String(http.StatusOK, "ui") })
+	r.GET("/api/health", func(c *gin.Context) { c.String(http.StatusOK, "ok") })
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil))
+	if csp := w.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "script-src 'self'") {
+		t.Errorf("swagger CSP = %q, want scripts from self allowed", csp)
+	}
+
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/health", nil))
+	if csp := w.Header().Get("Content-Security-Policy"); csp != "default-src 'none'; frame-ancestors 'none'" {
+		t.Errorf("api CSP = %q, want the strict policy untouched", csp)
+	}
+}
